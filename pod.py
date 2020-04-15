@@ -7,7 +7,6 @@ from commons.decorators import poll_timeout
 from framework.utils.decorators import k8s_exceptions
 from lite_k8s_cli.utils import convert_obj_to_dict, field_filter
 from lite_k8s_cli.exceptions import (
-    AquaBlockException,
     K8sInvalidResourceBody,
     K8sAuthenticationException,
     K8sPullingException,
@@ -17,7 +16,6 @@ from lite_k8s_cli.exceptions import (
 from lite_k8s_cli.consts import (
     DEFAULT_NAMESPACE,
     WAIT_TIMEOUT,
-    AQUA_BLOCK,
     COMPLETE_STATE,
     AUTHENTICATION_EXCEPTION,
     PULLING_EXCEPTION,
@@ -97,8 +95,6 @@ class PodClient(object):
             )
         )
         for event in events_list.items:
-            if AQUA_BLOCK in event.message:
-                raise AquaBlockException(message=event.message)
             if AUTHENTICATION_EXCEPTION in event.message:
                 raise K8sAuthenticationException(message=event.message)
             if PULLING_EXCEPTION in event.message or \

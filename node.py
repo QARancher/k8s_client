@@ -1,8 +1,8 @@
 import logging
 import paramiko
 
-from consts import KEY_PATH
-
+from consts import KEY_PATH, USER_NAME
+from exceptions import K8sException
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +43,6 @@ class NodeClient(object):
         elif external_ip is None:
             raise K8sException(message="Could not find an external ip of "
                                        "node {name}".format(name=name))
-        else:
-            raise K8sException(message="Could not find an AFW_AQUA_KEY_PATH")
 
     def get(self,
             name,
