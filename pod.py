@@ -3,17 +3,15 @@ from kubernetes.client import V1Pod
 from kubernetes.stream import stream
 
 
-from commons.decorators import poll_timeout
-from framework.utils.decorators import k8s_exceptions
-from lite_k8s_cli.utils import convert_obj_to_dict, field_filter
-from lite_k8s_cli.exceptions import (
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from exceptions import (
     K8sInvalidResourceBody,
     K8sAuthenticationException,
     K8sPullingException,
     K8sNotFoundException,
     K8sRuntimeException
 )
-from lite_k8s_cli.consts import (
+from consts import (
     DEFAULT_NAMESPACE,
     WAIT_TIMEOUT,
     COMPLETE_STATE,
@@ -104,9 +102,6 @@ class PodClient(object):
                 containers_counter -= 1
         return not containers_counter
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to {pod_name}'s containers to run with "
-                      "{timeout} timeout")
     def wait_for_containers_to_run(self,
                                    pod_name,
                                    pod_id,
@@ -221,9 +216,6 @@ class PodClient(object):
                 timeout=timeout)
         return pod_name
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to {pod_name} from namespace {namespace} "
-                      "to be deleted with {timeout} timeout")
     def wait_for_pod_to_be_deleted(self,
                                    pod_name,
                                    namespace=DEFAULT_NAMESPACE,

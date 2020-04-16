@@ -1,17 +1,10 @@
 import logging
+
 from kubernetes.client import V1DaemonSet
 
-
-from commons.decorators import poll_timeout
-from framework.utils.decorators import k8s_exceptions
-from lite_k8s_cli.exceptions import K8sInvalidResourceBody
-from lite_k8s_cli.utils import convert_obj_to_dict, field_filter
-from lite_k8s_cli.consts import (
-    DEFAULT_NAMESPACE,
-    WAIT_TIMEOUT,
-    DEFAULT_MAX_THREADS
-)
-
+from consts import WAIT_TIMEOUT, DEFAULT_NAMESPACE, DEFAULT_MAX_THREADS
+from exceptions import K8sInvalidResourceBody
+from utils import k8s_exceptions, convert_obj_to_dict, field_filter
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +37,6 @@ class DaemonSetClient(object):
         return (daemon_set.status.desired_number_scheduled ==
                 daemon_set.status.current_number_scheduled)
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to {daemon_set_name}'s pod to create with "
-                      "{timeout} timeout")
     def wait_for_daemon_set_to_run(self,
                                    daemon_set_name,
                                    namespace=DEFAULT_NAMESPACE,
@@ -185,9 +175,6 @@ class DaemonSetClient(object):
                 timeout=timeout,
                 max_threads=max_threads)
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to daemon set {name} from namespace {namespace} "
-                      "to be patched with {timeout} timeout")
     def wait_for_daemon_set_to_patch(self,
                                      name,
                                      pods,
@@ -215,7 +202,7 @@ class DaemonSetClient(object):
             namespace=namespace,
             timeout=timeout,
             max_threads=max_threads)
-        self.wait_for_daemon_set_to_run(deployment_name=name,
+        self.wait_for_daemon_set_to_run(daemon_set_name=name,
                                         namespace=namespace,
                                         timeout=timeout,
                                         max_threads=max_threads)

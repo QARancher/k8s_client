@@ -1,5 +1,4 @@
-from k8s_resource import K8sResource, get_current_timestamp
-from new_k8s_cli.commons.kubectl_utils import KubectlUtils
+from helpers.k8s_resource import K8sResource, get_current_timestamp
 
 
 class K8sPod(K8sResource):
@@ -101,7 +100,6 @@ class K8sPod(K8sResource):
     def add_volumes_dict(self,
                          volumes_dict):
         for vol_name, host_vol in volumes_dict.iteritems():
-            vol_name = KubectlUtils.get_k8s_valid_name(host_vol)
             self["spec"].setdefault("volumes", []).append(
                 {
                     "name": vol_name,

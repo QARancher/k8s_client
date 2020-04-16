@@ -3,6 +3,7 @@ import paramiko
 
 from consts import KEY_PATH, USER_NAME
 from exceptions import K8sException
+from utils import k8s_exceptions, convert_obj_to_dict, field_filter
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,7 @@ class NodeClient(object):
         :return: the list of the events
         :rtype: list
         """
-        node_id = self.get(name=name,).metadata.uid
+        node_id = self.get(name=name, ).metadata.uid
         events = self.client_core.list_event_for_all_namespaces(
             field_selector="involvedObject.uid=={node_id}".format(
                 node_id=node_id

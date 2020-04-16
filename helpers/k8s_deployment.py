@@ -1,4 +1,4 @@
-from k8s_daemonset import K8sDaemonSet
+from helpers.k8s_daemonset import K8sDaemonSet
 
 
 class K8sDeployment(K8sDaemonSet):

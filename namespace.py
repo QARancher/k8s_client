@@ -2,11 +2,9 @@ import logging
 from kubernetes.client import V1Namespace
 
 
-from commons.decorators import poll_timeout
-from lite_k8s_cli.consts import WAIT_TIMEOUT
-from framework.utils.decorators import k8s_exceptions
-from lite_k8s_cli.utils import convert_obj_to_dict, field_filter
-from lite_k8s_cli.exceptions import K8sInvalidResourceBody, \
+from consts import WAIT_TIMEOUT
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from exceptions import K8sInvalidResourceBody, \
     K8sNotFoundException
 
 
@@ -18,9 +16,6 @@ class NamespaceClient(object):
                  client_core):
         self.client_core = client_core
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to {namespace_name} namespace creation with "
-                      "{timeout} timeout")
     def wait_to_namespace_creation(self,
                                    namespace_name,
                                    timeout=WAIT_TIMEOUT):
@@ -79,9 +74,6 @@ class NamespaceClient(object):
                                             timeout=timeout)
         return namespace_name
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to {namespace_name} namespace deletion with "
-                      "{timeout} timeout")
     def wait_to_namespace_deletion(self,
                                    namespace_name,
                                    timeout=WAIT_TIMEOUT):

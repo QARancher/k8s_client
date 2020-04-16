@@ -1,4 +1,17 @@
-from lite_k8s_cli.exceptions import InvalidFieldSelector
+import logging
+
+from exceptions import InvalidFieldSelector, K8sException
+
+logger = logging.getLogger(__name__)
+
+
+def k8s_exceptions(func):
+    def func_wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except K8sException:
+            return None
+    return func_wrapper
 
 
 def underscore_to_uppercase(dict_to_edit):
@@ -31,15 +44,15 @@ def convert_obj_to_dict(obj):
 def split_list_to_chunks(list_to_slice,
                          number_of_chunks):
     chunk = {}
-    for pod_offset in xrange(0, len(list_to_slice), number_of_chunks):
-        for chunk_num in xrange(number_of_chunks):
-            if len(list_to_slice) > pod_offset+chunk_num:
+    for pod_offset in range(0, len(list_to_slice), number_of_chunks):
+        for chunk_num in range(number_of_chunks):
+            if len(list_to_slice) > pod_offset + chunk_num:
                 chunk.setdefault(chunk_num, []).append(
-                    list_to_slice[pod_offset+chunk_num]
+                    list_to_slice[pod_offset + chunk_num]
                 )
             else:
-                return chunk.itervalues()
-    return chunk.itervalues()
+                return chunk.values()
+    return chunk.values()
 
 
 def field_filter(obj_list,
@@ -70,7 +83,7 @@ def condition(obj,
         index = None
         if '[' in attr and attr[-1] == ']':
             try:
-                index = int(attr[attr.index('[')+1:-1])
+                index = int(attr[attr.index('[') + 1:-1])
                 attr = attr.split('[', 1)[0]
             except ValueError:
                 raise InvalidFieldSelector()

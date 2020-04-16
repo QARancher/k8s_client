@@ -1,4 +1,4 @@
-from k8s_resource import K8sResource, get_current_timestamp
+from helpers.k8s_resource import K8sResource, get_current_timestamp
 
 
 class K8sNamespace(K8sResource):

@@ -2,11 +2,9 @@ import logging
 from kubernetes.client import V1Secret
 
 
-from commons.decorators import poll_timeout
-from framework.utils.decorators import k8s_exceptions
-from lite_k8s_cli.consts import WAIT_TIMEOUT, DEFAULT_NAMESPACE
-from lite_k8s_cli.utils import convert_obj_to_dict, field_filter
-from lite_k8s_cli.exceptions import K8sInvalidResourceBody, \
+from consts import WAIT_TIMEOUT, DEFAULT_NAMESPACE
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from exceptions import K8sInvalidResourceBody, \
     K8sNotFoundException
 
 
@@ -18,9 +16,6 @@ class SecretClient(object):
                  client_core):
         self.client_core = client_core
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to {secret_name} secret from namespace "
-                      "{namespace} creation with {timeout} timeout")
     def wait_to_secret_creation(self,
                                 secret_name,
                                 namespace,
@@ -95,9 +90,6 @@ class SecretClient(object):
                                          timeout=timeout)
         return secret_name
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to {secret_name} secret from namespace "
-                      "{namespace} deletion with {timeout} timeout")
     def wait_to_secret_deletion(self,
                                 secret_name,
                                 namespace,

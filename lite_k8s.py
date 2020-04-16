@@ -2,28 +2,27 @@ import yaml
 from kubernetes import client, config
 
 
-from lite_k8s_cli.pod import PodClient
-from lite_k8s_cli.node import NodeClient
-from commons.decorators import poll_timeout
-from lite_k8s_cli.secret import SecretClient
-from lite_k8s_cli.service import ServiceClient
-from lite_k8s_cli.namespace import NamespaceClient
-from lite_k8s_cli.daemonset import DaemonSetClient
-from lite_k8s_cli.deployment import DeploymentClient
-from lite_k8s_cli.exceptions import K8sInvalidResourceBody
-from lite_k8s_cli.consts import (
+from pod import PodClient
+from node import NodeClient
+from secret import SecretClient
+from service import ServiceClient
+from namespace import NamespaceClient
+from daemonset import DaemonSetClient
+from deployment import DeploymentClient
+from exceptions import K8sInvalidResourceBody
+from consts import (
     WAIT_TIMEOUT,
-    DEFAULT_MAX_THREADS,
-    AFW_KUBECONFIG_PATH
+    DEFAULT_MAX_THREADS, KUBECONFIG_PATH,
+
 )
 
 
 class K8sClient(object):
 
     def __init__(self,
-                 afw_kubeconfig_path=AFW_KUBECONFIG_PATH):
+                 kubeconfig_path=KUBECONFIG_PATH):
         # Configure the client to the k8s environment
-        config.load_kube_config(afw_kubeconfig_path)
+        config.load_kube_config(kubeconfig_path)
         configuration = client.Configuration()
         configuration.assert_hostname = False
         client.Configuration.set_default(configuration)
@@ -42,7 +41,6 @@ class K8sClient(object):
         self.secret = SecretClient(client_core=client_core)
         self.service = ServiceClient(client_core=client_core)
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT)
     def create_from_yaml(self,
                          yaml_path,
                          wait=True,

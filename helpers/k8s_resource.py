@@ -1,8 +1,6 @@
 from datetime import datetime
 
-
-from lite_k8s_cli.exceptions import K8sInvalidResourceBody
-from new_k8s_cli.commons.kubectl_utils import KubectlUtils
+from exceptions import K8sInvalidResourceBody
 
 
 def get_current_timestamp():
@@ -13,7 +11,7 @@ def get_current_timestamp():
 def unpack(seq,
            number_to_unpack_first=1):
     it = iter(seq)
-    for x in xrange(number_to_unpack_first):
+    for x in range(number_to_unpack_first):
         yield next(it, None)
     yield tuple(it)
 
@@ -72,12 +70,11 @@ def create_container(image,
                 readonly = True
                 mount_vol = mount_vol[:-3]
 
-            vol_name = KubectlUtils.get_k8s_valid_name(
-                wanted_name=volumes_dict[host_vol])
-            container_obj["volumeMounts"].append({"name": vol_name,
-                                                  "mountPath": mount_vol,
-                                                  "readOnly": readonly}
-                                                 )
+            container_obj["volumeMounts"].append(
+                {"name": mount_vol,
+                 "mountPath": mount_vol,
+                 "readOnly": readonly}
+            )
     if resources_requests_dict is not None:
         container_obj['resources']['requests'] = resources_requests_dict
     if resources_limits_dict is not None:

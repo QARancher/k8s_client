@@ -1,5 +1,5 @@
-from k8s_resource import K8sResource
-from new_k8s_cli.commons.kubectl_utils import KubectlUtils
+
+from helpers.k8s_resource import K8sResource
 
 
 class K8sDaemonSet(K8sResource):
@@ -98,8 +98,6 @@ class K8sDaemonSet(K8sResource):
     def add_volumes_dict(self,
                          volumes_dict):
         for host_vol, vol_name in volumes_dict:
-            vol_name = KubectlUtils.get_k8s_valid_name(
-                wanted_name=vol_name)
             self.template["template"].setdefault("volumes", []).append(
                 {
                     "name": vol_name,

@@ -3,21 +3,19 @@ import threading
 from kubernetes.client import V1Deployment
 
 
-from commons.decorators import poll_timeout
-from framework.utils.decorators import k8s_exceptions
-from lite_k8s_cli.exceptions import K8sInvalidResourceBody
-from lite_k8s_cli.utils import (
+from utils import (
     convert_obj_to_dict,
     split_list_to_chunks,
-    field_filter
+    field_filter, k8s_exceptions
 )
-from lite_k8s_cli.consts import (
+from consts import (
     DEFAULT_NAMESPACE,
     WAIT_TIMEOUT,
     REPLICAS_THRESHOLD,
     DEFAULT_MAX_THREADS
 )
 
+from exceptions import K8sInvalidResourceBody
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +111,6 @@ class DeploymentClient(object):
                     timeout=timeout
                 )
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Waiting to {deployment_name}'s pods to create with "
-                      "{timeout} timeout")
     def wait_for_deployment_to_run(self,
                                    deployment_name,
                                    namespace=DEFAULT_NAMESPACE,
@@ -206,9 +201,6 @@ class DeploymentClient(object):
                                             max_threads=max_threads)
         return deployment_name
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Waiting to the deployment's pods to be deleted with "
-                      "timeout {timeout}")
     def wait_for_pods_to_be_deleted_thread_manager(
             self,
             pods,
@@ -309,9 +301,7 @@ class DeploymentClient(object):
                 timeout=timeout,
                 max_threads=max_threads)
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to deployment {name} from namespace {namespace} "
-                      "to be patched with {timeout} timeout")
+
     def wait_for_deployment_to_patch(self,
                                      name,
                                      pods,
@@ -389,9 +379,6 @@ class DeploymentClient(object):
                                               timeout=timeout,
                                               max_threads=max_threads)
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to deployment {name} from namespace {namespace} "
-                      "to scaled up with {timeout} timeout")
     def wait_for_deployment_to_scale_up(self,
                                         name,
                                         pods,
@@ -429,9 +416,6 @@ class DeploymentClient(object):
                     "".format(timeout=timeout))
         return True
 
-    @poll_timeout(default_timeout=WAIT_TIMEOUT,
-                  log="Wait to deployment {name} from namespace {namespace} "
-                      "to scaled down with {timeout} timeout")
     def wait_for_deployment_to_scale_down(self,
                                           name,
                                           new_size,
