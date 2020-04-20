@@ -4,8 +4,7 @@ from kubernetes.client import V1Namespace
 
 from consts import WAIT_TIMEOUT
 from utils import convert_obj_to_dict, field_filter, k8s_exceptions
-from exceptions import K8sInvalidResourceBody, \
-    K8sNotFoundException
+from exceptions import K8sInvalidResourceBody, K8sNotFoundException
 
 
 logger = logging.getLogger(__name__)
