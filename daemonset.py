@@ -2,7 +2,7 @@ import logging
 
 from kubernetes.client import V1DaemonSet
 
-from consts import WAIT_TIMEOUT, DEFAULT_NAMESPACE, DEFAULT_MAX_THREADS
+from consts import DEFAULT_NAMESPACE, DEFAULT_MAX_THREADS
 from exceptions import K8sInvalidResourceBody
 from utils import k8s_exceptions, convert_obj_to_dict, field_filter
 
@@ -40,7 +40,6 @@ class DaemonSetClient(object):
     def wait_for_daemon_set_to_run(self,
                                    daemon_set_name,
                                    namespace=DEFAULT_NAMESPACE,
-                                   timeout=WAIT_TIMEOUT,
                                    max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the daemon set is running (including their pods...)
@@ -49,9 +48,6 @@ class DaemonSetClient(object):
         :param namespace: the namespace of the daemon set
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -64,10 +60,7 @@ class DaemonSetClient(object):
                 name=daemon_set_name,
                 namespace=namespace),
             namespace=namespace,
-            timeout=timeout,
             max_threads=max_threads)
-        logger.info("Finished waiting before the timeout {timeout}"
-                    "".format(timeout=timeout))
         return True
 
     @k8s_exceptions
@@ -75,7 +68,6 @@ class DaemonSetClient(object):
                body,
                namespace=DEFAULT_NAMESPACE,
                wait=True,
-               timeout=WAIT_TIMEOUT,
                max_threads=DEFAULT_MAX_THREADS):
         """
         Create daemon set
@@ -86,9 +78,6 @@ class DaemonSetClient(object):
         :type namespace: str
         :param wait: to wait until the creation (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the creation is over
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -110,21 +99,16 @@ class DaemonSetClient(object):
                 raise K8sInvalidResourceBody()
         except (KeyError, AttributeError):
             raise K8sInvalidResourceBody()
-
         # create the daemon from the body
         self.client_app.create_namespaced_daemon_set(
             body=body,
             namespace=namespace)
-        logger.info("Created the daemon set {daemon_set_name} in {namespace} "
-                    "namespace".format(daemon_set_name=daemon_set_name,
-                                       namespace=namespace)
-                    )
-
+        logger.info(f"Created the daemon set {daemon_set_name} in {namespace} "
+                    f"namespace")
         # wait to the daemon set to run
         if wait:
             self.wait_for_daemon_set_to_run(daemon_set_name=daemon_set_name,
                                             namespace=namespace,
-                                            timeout=timeout,
                                             max_threads=max_threads)
         return daemon_set_name
 
@@ -133,7 +117,6 @@ class DaemonSetClient(object):
                name,
                namespace=DEFAULT_NAMESPACE,
                wait=False,
-               timeout=WAIT_TIMEOUT,
                max_threads=DEFAULT_MAX_THREADS):
         """
         Delete daemon set
@@ -145,9 +128,6 @@ class DaemonSetClient(object):
         :param wait: to wait until the deletion is over
         (default value is False)
         :type wait: bool
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
@@ -159,27 +139,19 @@ class DaemonSetClient(object):
         # delete the pod from the required namespace
         self.client_app.delete_namespaced_daemon_set(name=name,
                                                      namespace=namespace)
-        logger.info("Deleted daemon set {name} from {namespace} namespace"
-                    "".format(name=name,
-                              namespace=namespace))
-
+        logger.info(f"Deleted daemon set {name} from {namespace} namespace")
         # wait to the pods to be deleted
         if wait:
-            logger.info("Wait to {daemon_set_name} to be deleted with "
-                        "{timeout} timeout".format(daemon_set_name=name,
-                                                   timeout=timeout)
-                        )
+            logger.info(f"Wait to {name} to be deleted with")
             self.deployment.wait_for_pods_to_be_deleted_thread_manager(
                 pods=pods,
                 namespace=namespace,
-                timeout=timeout,
                 max_threads=max_threads)
 
     def wait_for_daemon_set_to_patch(self,
                                      name,
                                      pods,
                                      namespace=DEFAULT_NAMESPACE,
-                                     timeout=WAIT_TIMEOUT,
                                      max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the daemon set's pods are patched
@@ -190,9 +162,6 @@ class DaemonSetClient(object):
         :param namespace: the namespace of the daemon set
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the patch
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -200,14 +169,10 @@ class DaemonSetClient(object):
         self.deployment.wait_for_pods_to_be_deleted_thread_manager(
             pods=pods,
             namespace=namespace,
-            timeout=timeout,
             max_threads=max_threads)
         self.wait_for_daemon_set_to_run(daemon_set_name=name,
                                         namespace=namespace,
-                                        timeout=timeout,
                                         max_threads=max_threads)
-        logger.info("Finished waiting before the timeout {timeout}"
-                    "".format(timeout=timeout))
         return True
 
     @k8s_exceptions
@@ -216,7 +181,6 @@ class DaemonSetClient(object):
               body,
               namespace=DEFAULT_NAMESPACE,
               wait=True,
-              timeout=WAIT_TIMEOUT,
               max_threads=DEFAULT_MAX_THREADS):
         """
         Patch daemon set
@@ -230,9 +194,6 @@ class DaemonSetClient(object):
         :param wait: to wait until the patch is over
         (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the end of the patch
-         (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
@@ -242,14 +203,11 @@ class DaemonSetClient(object):
         self.client_app.patch_namespaced_daemon_set(name=name,
                                                     namespace=namespace,
                                                     body=body)
-        logger.info("Patched daemon set {name} from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
+        logger.info(f"Patched daemon set {name} from namespace {namespace}")
         if wait:
             self.wait_for_daemon_set_to_patch(name=name,
                                               pods=pods,
                                               namespace=namespace,
-                                              timeout=timeout,
                                               max_threads=max_threads)
 
     @k8s_exceptions
@@ -272,9 +230,7 @@ class DaemonSetClient(object):
         daemon_set = self.client_app.read_namespaced_daemon_set(
             name=name,
             namespace=namespace)
-        logger.info("Got deployment {name} from {namespace} namespace".format(
-            name=name,
-            namespace=namespace))
+        logger.info(f"Got deployment {name} from {namespace} namespace")
 
         # convert the obj to dict if required
         if dict_output:
@@ -312,8 +268,7 @@ class DaemonSetClient(object):
         else:
             daemon_sets_list = self.client_app.list_namespaced_daemon_set(
                 namespace=namespace).items
-            logger.info("Got the daemon sets list from {namespace} namespace"
-                        "".format(namespace=namespace))
+            logger.info(f"Got the daemon sets list from {namespace} namespace")
 
         if field_selector:
             daemon_sets_list = field_filter(obj_list=daemon_sets_list,
@@ -357,9 +312,8 @@ class DaemonSetClient(object):
         """
         pods_list = self.pod.list(
             namespace=namespace,
-            field_selector="metadata.owner_references[0].kind==DaemonSet, "
-                           "metadata.owner_references[0].name=={name}"
-                           "".format(name=name),
+            field_selector=f"metadata.owner_references[0].kind==DaemonSet, "
+                           f"metadata.owner_references[0].name=={name}",
             dict_output=dict_output
         )
         return pods_list
@@ -385,14 +339,9 @@ class DaemonSetClient(object):
                                   namespace=namespace).metadata.uid
         events = self.client_app.list_namespaced_event(
             namespace=namespace,
-            field_selector="involvedObject.uid=={daemon_set_uid}".format(
-                daemon_set_uid=daemon_set_uid
-            )
-        ).items
-        logger.info("Got the events of daemon set {name} from namespace "
-                    "{namespace}".format(name=name,
-                                         namespace=namespace)
-                    )
+            field_selector=f"involvedObject.uid=={daemon_set_uid}").items
+        logger.info(f"Got the events of daemon set {name} from namespace "
+                    f"{namespace}")
         if only_messages:
             events = [event["message"] for event in events
                       if event.get("message") is not None]

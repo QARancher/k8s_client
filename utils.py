@@ -17,18 +17,18 @@ def k8s_exceptions(func):
     K8sException based on the reason in the API.
     """
 
-    def func_wrapper(*args, **kwargs):
+    def exception_wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except ApiException as e:
             error = json.loads(e.body)
 
             raise K8sException(
-                message=f"Executed {func.__name__!r} \nFailed with error:\n"
-                        f" {error.get('message')}",
+                message=f"Executed {func.__module__!r}.{func.__name__!r}"
+                        f" \nFailed with error:\n {error.get('message')}",
                 reason=error.get('reason'))
 
-    return func_wrapper
+    return exception_wrapper
 
 
 def wait_for(func):
@@ -41,9 +41,12 @@ def wait_for(func):
             try:
                 value = func(*args, **kwargs)
                 if value:
+                    logger.info(f"Finished waiting for"
+                                f" {func.__module__}.{func.__name__!r}")
                     return False
             except:
                 return True
+
     return wrapper_wait
 
 

@@ -2,7 +2,7 @@ import logging
 from kubernetes.client import V1Secret
 
 
-from consts import WAIT_TIMEOUT, DEFAULT_NAMESPACE
+from consts import DEFAULT_NAMESPACE
 from utils import convert_obj_to_dict, field_filter, k8s_exceptions
 from exceptions import K8sInvalidResourceBody, \
     K8sNotFoundException
@@ -18,8 +18,7 @@ class SecretClient(object):
 
     def wait_to_secret_creation(self,
                                 secret_name,
-                                namespace,
-                                timeout=WAIT_TIMEOUT):
+                                namespace):
         """
         Wait to secret creation
         :param secret_name: the name of the secret to wait for
@@ -27,15 +26,10 @@ class SecretClient(object):
         :param namespace: the namespace of the secret
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         try:
             self.get(name=secret_name,
                      namespace=namespace)
-            logger.info("Finished waiting before the timeout {timeout}"
-                        "".format(timeout=timeout))
             return True
         except K8sNotFoundException:
             return False
@@ -44,8 +38,7 @@ class SecretClient(object):
     def create(self,
                body,
                namespace=DEFAULT_NAMESPACE,
-               wait=True,
-               timeout=WAIT_TIMEOUT):
+               wait=True):
         """
         Create a secret
         :param body: secret's body
@@ -55,9 +48,6 @@ class SecretClient(object):
         :type namespace: str
         :param wait: to wait until the creation is over (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :return: secret name
         :rtype: str
         """
@@ -74,26 +64,20 @@ class SecretClient(object):
                 raise K8sInvalidResourceBody()
         except (KeyError, AttributeError):
             raise K8sInvalidResourceBody()
-
         # create the secret from the body
         self.client_core.create_namespaced_secret(namespace=namespace,
                                                   body=body)
-        logger.info("Created the secret {secret_name} in namespace {namespace}"
-                    "".format(secret_name=secret_name,
-                              namespace=namespace)
-                    )
+        logger.info(f"Created the secret {secret_name} in namespace {namespace}")
 
         # wait to secret creation
         if wait:
             self.wait_to_secret_creation(secret_name=secret_name,
-                                         namespace=namespace,
-                                         timeout=timeout)
+                                         namespace=namespace)
         return secret_name
 
     def wait_to_secret_deletion(self,
                                 secret_name,
-                                namespace,
-                                timeout=WAIT_TIMEOUT):
+                                namespace):
         """
         Wait until the secret is deleted
         :param secret_name: the name of the secret
@@ -101,25 +85,20 @@ class SecretClient(object):
         :param namespace: the namespace of the secret
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         try:
             self.get(name=secret_name,
                      namespace=namespace)
             return False
         except K8sNotFoundException:
-            logger.info("Finished waiting before the timeout {timeout}"
-                        "".format(timeout=timeout))
+            logger.info("Finished waiting before the timeout")
             return True
 
     @k8s_exceptions
     def delete(self,
                name,
                namespace=DEFAULT_NAMESPACE,
-               wait=False,
-               timeout=WAIT_TIMEOUT):
+               wait=False):
         """
         Delete secret
         :param name: secret's name
@@ -129,22 +108,15 @@ class SecretClient(object):
         :type namespace: str
         :param wait: to wait until the deletion is over (default value is False)
         :type wait: bool
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         # delete the secret
         self.client_core.delete_namespaced_secret(name=name,
                                                   namespace=namespace)
-        logger.info("Deleted {name} secret from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
-
+        logger.info(f"Deleted {name} secret from namespace {namespace}")
         # wait to the secret to be deleted
         if wait:
             self.wait_to_secret_deletion(secret_name=name,
-                                         namespace=namespace,
-                                         timeout=timeout)
+                                         namespace=namespace)
 
     @k8s_exceptions
     def get(self,
@@ -165,16 +137,12 @@ class SecretClient(object):
         """
         secret = self.client_core.read_namespaced_secret(name=name,
                                                          namespace=namespace)
-        logger.info("Got {name} secret from namespace {namespace}".format(
-            name=name,
-            namespace=namespace))
-
+        logger.info(f"Got {name} secret from namespace {namespace}")
         # convert the obj to dict if required
         if dict_output:
             secret = convert_obj_to_dict(secret)
         else:
             secret.metadata.resource_version = ''
-
         return secret
 
     @k8s_exceptions
@@ -205,8 +173,8 @@ class SecretClient(object):
         else:
             secrets_list = self.client_core.list_namespaced_secret(
                 namespace=namespace).items
-            logger.info("Got secrets list from namespace "
-                        "{namespace}".format(namespace=namespace))
+            logger.info(f"Got secrets list from namespace "
+                        f"{namespace}")
 
         if field_selector:
             secrets_list = field_filter(obj_list=secrets_list,
@@ -246,9 +214,7 @@ class SecretClient(object):
         (default value is 'default')
         :type namespace: str
         """
-        logger.info("Patched {name} secret from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
+        logger.info(f"Patched {name} secret from namespace {namespace}")
         self.client_core.patch_namespaced_secret(name=name,
                                                  namespace=namespace,
                                                  body=body)

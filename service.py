@@ -3,7 +3,7 @@ from kubernetes.client import V1Service
 
 
 from consts import WAIT_TIMEOUT, DEFAULT_NAMESPACE
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
 from exceptions import K8sInvalidResourceBody, K8sException, \
     K8sNotFoundException
 
@@ -15,10 +15,10 @@ class ServiceClient(object):
                  client_core):
         self.client_core = client_core
 
+    @wait_for
     def wait_to_service_creation(self,
                                  service_name,
-                                 namespace,
-                                 timeout=WAIT_TIMEOUT):
+                                 namespace):
         """
         Wait to service creation
         :param service_name: the name of the service to wait for
@@ -26,9 +26,6 @@ class ServiceClient(object):
         :param namespace: the namespace of the service
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         try:
             service = self.get(name=service_name,
@@ -43,12 +40,8 @@ class ServiceClient(object):
                         service.status.load_balancer.ingress is not None):
                     return False
                 else:
-                    logger.info("Finished waiting before the timeout {timeout}"
-                                "".format(timeout=timeout))
                     return True
             else:
-                logger.info("Finished waiting before the timeout {timeout}"
-                            "".format(timeout=timeout))
                 return True
         except K8sNotFoundException:
             return False

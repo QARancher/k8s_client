@@ -3,14 +3,10 @@ import threading
 from kubernetes.client import V1Deployment
 
 
-from utils import (
-    convert_obj_to_dict,
-    split_list_to_chunks,
-    field_filter, k8s_exceptions
-)
+from utils import (convert_obj_to_dict, split_list_to_chunks, field_filter,
+                   k8s_exceptions, wait_for)
 from consts import (
     DEFAULT_NAMESPACE,
-    WAIT_TIMEOUT,
     REPLICAS_THRESHOLD,
     DEFAULT_MAX_THREADS
 )
@@ -61,7 +57,6 @@ class DeploymentClient(object):
     def wait_for_pods_creation_thread_manager(self,
                                               pods,
                                               namespace=DEFAULT_NAMESPACE,
-                                              timeout=WAIT_TIMEOUT,
                                               max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the all pods are running
@@ -70,9 +65,6 @@ class DeploymentClient(object):
         :type pods: list
         :param namespace: the namespace of the deployment
         :type namespace: str
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -85,8 +77,7 @@ class DeploymentClient(object):
                     "pod_name": pod.metadata.name,
                     "pod_id": pod.metadata.uid,
                     "containers_counter": len(pod.spec.containers),
-                    "namespace": namespace,
-                    "timeout": timeout
+                    "namespace": namespace
                           }
                 kwargs_list.append(kwargs)
             for pods_kwargs in split_list_to_chunks(
@@ -107,14 +98,13 @@ class DeploymentClient(object):
                     pod_name=pod.metadata.name,
                     pod_id=pod.metadata.uid,
                     containers_counter=len(pod.spec.containers),
-                    namespace=namespace,
-                    timeout=timeout
+                    namespace=namespace
                 )
 
+    @wait_for
     def wait_for_deployment_to_run(self,
                                    deployment_name,
                                    namespace=DEFAULT_NAMESPACE,
-                                   timeout=WAIT_TIMEOUT,
                                    max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the deployment is running (including their pods...)
@@ -123,9 +113,6 @@ class DeploymentClient(object):
         :param namespace: the namespace of the deployment
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -137,10 +124,7 @@ class DeploymentClient(object):
                                                         name=deployment_name,
                                                         namespace=namespace),
                                                    namespace=namespace,
-                                                   timeout=timeout,
                                                    max_threads=max_threads)
-        logger.info("Finished waiting before the timeout {timeout}"
-                    "".format(timeout=timeout))
         return True
 
     @k8s_exceptions
@@ -148,7 +132,6 @@ class DeploymentClient(object):
                body,
                namespace=DEFAULT_NAMESPACE,
                wait=True,
-               timeout=WAIT_TIMEOUT,
                max_threads=DEFAULT_MAX_THREADS):
         """
         Create deployment
@@ -159,9 +142,6 @@ class DeploymentClient(object):
         :type namespace: str
         :param wait: to wait until the creation is over (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -259,7 +239,6 @@ class DeploymentClient(object):
                name,
                namespace=DEFAULT_NAMESPACE,
                wait=False,
-               timeout=WAIT_TIMEOUT,
                max_threads=DEFAULT_MAX_THREADS):
         """
         Delete deployment
@@ -271,9 +250,6 @@ class DeploymentClient(object):
         :param wait: to wait until the deletion is over
         (default value is False)
         :type wait: bool
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
@@ -285,28 +261,21 @@ class DeploymentClient(object):
         # delete the pod from the required namespace
         self.client_app.delete_namespaced_deployment(name=name,
                                                      namespace=namespace)
-        logger.info("Deleted deployment {name} from {namespace} namespace"
-                    "".format(name=name,
-                              namespace=namespace))
+        logger.info(f"Deleted deployment {name} from {namespace} namespace")
 
         # wait to the pods to be deleted
         if wait:
-            logger.info("Wait to {deployment_name} to be deleted with "
-                        "{timeout} timeout".format(deployment_name=name,
-                                                   timeout=timeout)
-                        )
+            logger.info(f"Wait to {name} to be deleted")
             self.wait_for_pods_to_be_deleted_thread_manager(
                 pods=pods,
                 namespace=namespace,
-                timeout=timeout,
                 max_threads=max_threads)
 
-
+    @wait_for
     def wait_for_deployment_to_patch(self,
                                      name,
                                      pods,
                                      namespace=DEFAULT_NAMESPACE,
-                                     timeout=WAIT_TIMEOUT,
                                      max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the deployment's pods are patched
@@ -317,9 +286,6 @@ class DeploymentClient(object):
         :param namespace: the namespace of the deployment
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the patch
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -327,14 +293,11 @@ class DeploymentClient(object):
         self.wait_for_pods_to_be_deleted_thread_manager(
             pods=pods,
             namespace=namespace,
-            timeout=timeout,
             max_threads=max_threads)
         self.wait_for_deployment_to_run(deployment_name=name,
                                         namespace=namespace,
-                                        timeout=timeout,
                                         max_threads=max_threads)
-        logger.info("Finished waiting before the timeout {timeout}"
-                    "".format(timeout=timeout))
+        logger.info(f"Finished waiting {self.__name__!r}")
         return True
 
     @k8s_exceptions
@@ -343,7 +306,6 @@ class DeploymentClient(object):
               body,
               namespace=DEFAULT_NAMESPACE,
               wait=True,
-              timeout=WAIT_TIMEOUT,
               max_threads=DEFAULT_MAX_THREADS):
         """
         Patch deployment
@@ -357,9 +319,6 @@ class DeploymentClient(object):
         :param wait: to wait until the patch is over
         (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the end of the patch
-         (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
@@ -369,21 +328,18 @@ class DeploymentClient(object):
         self.client_app.patch_namespaced_deployment(name=name,
                                                     namespace=namespace,
                                                     body=body)
-        logger.info("Patched deployment {name} from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
+        logger.info(f"Patched deployment {name} from namespace {namespace}")
         if wait:
             self.wait_for_deployment_to_patch(name=name,
                                               pods=pods,
                                               namespace=namespace,
-                                              timeout=timeout,
                                               max_threads=max_threads)
 
+    @wait_for
     def wait_for_deployment_to_scale_up(self,
                                         name,
                                         pods,
                                         namespace=DEFAULT_NAMESPACE,
-                                        timeout=WAIT_TIMEOUT,
                                         max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the deployment is scaled up
@@ -394,9 +350,6 @@ class DeploymentClient(object):
         :param namespace: the namespace of the deployment
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the scale up
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -410,17 +363,15 @@ class DeploymentClient(object):
                     if pod not in pods]
         self.wait_for_pods_creation_thread_manager(pods=new_pods,
                                                    namespace=namespace,
-                                                   timeout=timeout,
                                                    max_threads=max_threads)
-        logger.info("Finished waiting before the timeout {timeout}"
-                    "".format(timeout=timeout))
+        logger.info(f"Finished waiting for {self.__name__!r}")
         return True
 
+    @wait_for
     def wait_for_deployment_to_scale_down(self,
                                           name,
                                           new_size,
-                                          namespace=DEFAULT_NAMESPACE,
-                                          timeout=WAIT_TIMEOUT):
+                                          namespace=DEFAULT_NAMESPACE):
         """
         Wait until the deployment is scaled down
         :param name: the name of the deployment
@@ -430,15 +381,11 @@ class DeploymentClient(object):
         :param namespace: the namespace of the deployment
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the scale down
-        (default value is WAIT_TIMEOUT)
         """
         is_scaled_down = len(self.get_pods(name=name,
                                            namespace=namespace)) == new_size
         if is_scaled_down:
-            logger.info("Finished waiting before the timeout {timeout}"
-                        "".format(timeout=timeout)
-                        )
+            logger.info(f"Finished waiting for {self.__name__!r}")
         return is_scaled_down
 
     def scale(self,
@@ -446,7 +393,6 @@ class DeploymentClient(object):
               new_size,
               namespace=DEFAULT_NAMESPACE,
               wait=True,
-              timeout=WAIT_TIMEOUT,
               max_threads=DEFAULT_MAX_THREADS):
         """
         Scale deployment
@@ -460,9 +406,6 @@ class DeploymentClient(object):
         :param wait: to wait until the scale up is over
         (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the end of the scale
-         (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
@@ -474,29 +417,23 @@ class DeploymentClient(object):
                    body=body,
                    namespace=namespace,
                    wait=False,
-                   timeout=timeout,
                    max_threads=max_threads)
-        logger.info("Scaled deployment {name} from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
+        logger.info(f"Scaled deployment {name} from namespace {namespace}")
         if wait:
             if new_size > len(pods):
                 self.wait_for_deployment_to_scale_up(name=name,
                                                      pods=pods,
                                                      namespace=namespace,
-                                                     timeout=timeout,
                                                      max_threads=max_threads)
             elif new_size < len(pods):
                 self.wait_for_deployment_to_scale_down(name=name,
                                                        new_size=new_size,
-                                                       namespace=namespace,
-                                                       timeout=timeout)
+                                                       namespace=namespace)
 
     def scale_down_up(self,
                       name,
                       namespace=DEFAULT_NAMESPACE,
                       wait=True,
-                      timeout=WAIT_TIMEOUT,
                       max_threads=DEFAULT_MAX_THREADS):
         """
         Scale down and up deployment
@@ -508,9 +445,6 @@ class DeploymentClient(object):
         :param wait: to wait until the scale up is over
         (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the end of the scale
-         (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
@@ -521,13 +455,11 @@ class DeploymentClient(object):
                    new_size=0,
                    namespace=namespace,
                    wait=wait,
-                   timeout=timeout,
                    max_threads=max_threads)
         self.scale(name=name,
                    new_size=replicas,
                    namespace=namespace,
                    wait=wait,
-                   timeout=timeout,
                    max_threads=max_threads)
 
     @k8s_exceptions
