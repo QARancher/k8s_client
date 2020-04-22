@@ -22,3 +22,9 @@ def assert_not_in_list(searched_list, unwanted_element, message=""):
         message = f"'{unwanted_element}' found in list {searched_list} \n " \
                   f"although it should not be"
     assert unwanted_element not in searched_list, message
+
+
+def assert_of_type(wanted_type, wanted_object, message=""):
+    if not message:
+        message = f"{wanted_object} is not of type: {wanted_type}"
+    assert isinstance(wanted_object, wanted_type), message
