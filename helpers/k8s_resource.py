@@ -51,7 +51,8 @@ def create_container(image, container_name, privileged=None, as_user=None,
                 mount_vol = mount_vol[:-3]
 
             container_obj["volumeMounts"].append(
-                {"name": mount_vol, "mountPath": mount_vol,
+                {"name": mount_vol,
+                 "mountPath": mount_vol,
                  "readOnly": readonly})
     if resources_requests_dict is not None:
         container_obj['resources']['requests'] = resources_requests_dict
