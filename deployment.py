@@ -54,6 +54,7 @@ class DeploymentClient(object):
         for kwargs in pod_kwargs_list:
             pod_wait_func(**kwargs)
 
+    @wait_for
     def wait_for_pods_creation_thread_manager(self,
                                               pods,
                                               namespace=DEFAULT_NAMESPACE,
@@ -168,16 +169,12 @@ class DeploymentClient(object):
         self.client_app.create_namespaced_deployment(
             body=body,
             namespace=namespace)
-        logger.info("Created the deployment {deployment_name} in {namespace} "
-                    "namespace".format(deployment_name=deployment_name,
-                                       namespace=namespace)
-                    )
-
+        logger.info(f"Created the deployment {deployment_name} in {namespace} "
+                    "namespace")
         # wait to the deployment to run
         if wait:
             self.wait_for_deployment_to_run(deployment_name=deployment_name,
                                             namespace=namespace,
-                                            timeout=timeout,
                                             max_threads=max_threads)
         return deployment_name
 

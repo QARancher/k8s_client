@@ -44,7 +44,6 @@ class K8sClient(object):
     def create_from_yaml(self,
                          yaml_path,
                          wait=True,
-                         timeout=WAIT_TIMEOUT,
                          max_threads=DEFAULT_MAX_THREADS):
         with open(yaml_path, "r") as f:
             for resource in yaml.load_all(f.read()):
@@ -53,30 +52,24 @@ class K8sClient(object):
 
                 if resource["kind"] == "Pod":
                     self.pod.create(body=resource,
-                                    wait=wait,
-                                    timeout=timeout)
+                                    wait=wait)
                 if resource["kind"] == "Deployment":
                     self.deployment.create(body=resource,
                                            wait=wait,
-                                           timeout=timeout,
                                            max_threads=max_threads)
                 if resource["kind"] == "DaemonSet":
                     self.daemon_set.create(body=resource,
                                            wait=wait,
-                                           timeout=timeout,
                                            max_threads=max_threads)
                 if resource["kind"] == "Namespace":
                     self.namespace.create(body=resource,
-                                          wait=wait,
-                                          timeout=timeout)
+                                          wait=wait)
                 if resource["kind"] == "Secret":
                     self.pod.create(body=resource,
-                                    wait=wait,
-                                    timeout=timeout)
+                                    wait=wait)
                 if resource["kind"] == "Service":
                     self.service.create(body=resource,
-                                        wait=wait,
-                                        timeout=timeout)
+                                        wait=wait)
                 else:
                     raise K8sInvalidResourceBody("unsupported resource type")
 

@@ -13,7 +13,6 @@ from exceptions import (
 )
 from consts import (
     DEFAULT_NAMESPACE,
-    WAIT_TIMEOUT,
     COMPLETE_STATE,
     AUTHENTICATION_EXCEPTION,
     PULLING_EXCEPTION,
@@ -205,8 +204,7 @@ class PodClient(object):
     @wait_for
     def wait_for_pod_to_be_deleted(self,
                                    pod_name,
-                                   namespace=DEFAULT_NAMESPACE,
-                                   timeout=WAIT_TIMEOUT):
+                                   namespace=DEFAULT_NAMESPACE):
         """
         Wait until the pod is deleted
         :param pod_name: the name of the pod
@@ -214,9 +212,6 @@ class PodClient(object):
         :param namespace: the namespace of the service
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         try:
             self.get(name=pod_name,

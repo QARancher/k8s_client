@@ -2,7 +2,7 @@ import logging
 from kubernetes.client import V1Service
 
 
-from consts import WAIT_TIMEOUT, DEFAULT_NAMESPACE
+from consts import DEFAULT_NAMESPACE
 from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
 from exceptions import K8sInvalidResourceBody, K8sException, \
     K8sNotFoundException
@@ -50,8 +50,7 @@ class ServiceClient(object):
     def create(self,
                body,
                namespace=DEFAULT_NAMESPACE,
-               wait=True,
-               timeout=WAIT_TIMEOUT):
+               wait=True):
         """
         Create service
         :param body: service's body
@@ -61,9 +60,6 @@ class ServiceClient(object):
         :type namespace: str
         :param wait: to wait until the creation is over (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :return: service name
         :rtype: str
         """
@@ -84,23 +80,18 @@ class ServiceClient(object):
         # create the service from the body
         self.client_core.create_namespaced_service(namespace=namespace,
                                                    body=body)
-        logger.info("Created the service {service_name} in namespace "
-                    "{namespace}".format(service_name=service_name,
-                                         namespace=namespace)
-                    )
-
+        logger.info(f"Created the service {service_name} in namespace "
+                    "{namespace}")
         # wait to service creation
         if wait:
             self.wait_to_service_creation(service_name=service_name,
-                                          namespace=namespace,
-                                          timeout=timeout)
+                                          namespace=namespace)
         return service_name
 
-
+    @wait_for
     def wait_to_service_deletion(self,
                                  service_name,
-                                 namespace,
-                                 timeout=WAIT_TIMEOUT):
+                                 namespace):
         """
         Wait until the service is deleted
         :param service_name: the name of the service
@@ -108,25 +99,19 @@ class ServiceClient(object):
         :param namespace: the namespace of the service
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         try:
             self.get(name=service_name,
                      namespace=namespace)
             return False
         except K8sNotFoundException:
-            logger.info("Finished waiting before the timeout {timeout}"
-                        "".format(timeout=timeout))
             return True
 
     @k8s_exceptions
     def delete(self,
                name,
                namespace=DEFAULT_NAMESPACE,
-               wait=True,
-               timeout=WAIT_TIMEOUT):
+               wait=True):
         """
         Delete service
         :param name: service's name
@@ -137,22 +122,15 @@ class ServiceClient(object):
         :param wait: to wait until the deletion is over
         (default value is False)
         :type wait: bool
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         # delete the service
         self.client_core.delete_namespaced_service(name=name,
                                                    namespace=namespace)
-        logger.info("Deleted {name} service from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
-
+        logger.info(f"Deleted {name} service from namespace {namespace}")
         # wait to the service to be deleted
         if wait:
             self.wait_to_service_deletion(service_name=name,
-                                          namespace=namespace,
-                                          timeout=timeout)
+                                          namespace=namespace)
 
     @k8s_exceptions
     def get(self,
@@ -173,9 +151,7 @@ class ServiceClient(object):
         """
         service = self.client_core.read_namespaced_service(name=name,
                                                            namespace=namespace)
-        logger.info("Got {name} service from namespace {namespace}".format(
-            name=name,
-            namespace=namespace))
+        logger.info(f"Got {name} service from namespace {namespace}")
 
         # convert the obj to dict if required
         if dict_output:
@@ -241,13 +217,11 @@ class ServiceClient(object):
         else:
             services_list = self.client_core.list_namespaced_service(
                 namespace=namespace).items
-            logger.info("Got services list from namespace "
-                        "{namespace}".format(namespace=namespace))
-
+            logger.info(f"Got services list from namespace "
+                        "{namespace}")
         if field_selector:
             services_list = field_filter(obj_list=services_list,
                                          field_selector=field_selector)
-
         # convert the list to list of dicts if required
         if dict_output:
             services_list = [convert_obj_to_dict(service)
@@ -255,7 +229,6 @@ class ServiceClient(object):
         else:
             for service in services_list:
                 service.metadata.resource_version = ''
-
         return services_list
 
     def list_names(self,
@@ -288,14 +261,9 @@ class ServiceClient(object):
                               namespace=namespace).metadata.uid
         events = self.client_core.list_namespaced_event(
             namespace=namespace,
-            field_selector="involvedObject.uid=={service_id}".format(
-                service_id=service_id
-            )
-        ).items
-        logger.info("Got the events of service {name} from namespace "
-                    "{namespace}".format(name=name,
-                                         namespace=namespace)
-                    )
+            field_selector=f"involvedObject.uid=={service_id}").items
+        logger.info(f"Got the events of service {name} from namespace "
+                    f"{namespace}")
         if only_messages:
             events = [event["message"] for event in events
                       if event.get("message") is not None]
@@ -316,9 +284,11 @@ class ServiceClient(object):
         (default value is 'default')
         :type namespace: str
         """
-        logger.info("Patched service {name} from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
+        logger.info(f"Patched service {name} from namespace {namespace}")
         self.client_core.patch_namespaced_service(name=name,
                                                   namespace=namespace,
                                                   body=body)
+
+
+if __name__ == "__main__":
+    pass
