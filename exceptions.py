@@ -3,7 +3,7 @@ class K8sException(Exception):
         if reason and 'NotFound' in reason:
             raise K8sNotFoundException(message=message)
         if reason and 'AlreadyExists':
-            raise K8sAlreadyExists(message=message)
+            raise K8sAlreadyExistsException(message=message)
         super(K8sException, self).__init__(message)
 
 
@@ -32,9 +32,9 @@ class K8sNotFoundException(K8sException):
         super(K8sNotFoundException, self).__init__(message)
 
 
-class K8sAlreadyExists(K8sException):
+class K8sAlreadyExistsException(K8sException):
     def __init__(self, message="Resource Already Exists"):
-        super(K8sAlreadyExists, self).__init__(message)
+        super(K8sAlreadyExistsException, self).__init__(message)
 
 
 class K8sRuntimeException(K8sException):

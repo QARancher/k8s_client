@@ -1,4 +1,4 @@
-from exceptions import K8sAlreadyExists, K8sNotFoundException
+from exceptions import K8sAlreadyExistsException, K8sNotFoundException
 from helpers.k8s_namespace import K8sNamespace
 from tests.asserts_wrapper import assert_not_none, assert_in_list, \
     assert_not_in_list, assert_equal
@@ -25,7 +25,7 @@ class TestNamespace(BaseTest):
         ns_name = "test"
         ns_obj = K8sNamespace(name=ns_name)
         # create namespace
-        orc.namespace.create(ns_obj)
+        orc.namespace.create(body=ns_obj)
         ns = orc.namespace.get(name=ns_name)
         assert_equal(actual_result=ns.metadata.name, expected_result=ns_name)
         # delete namespace
@@ -37,11 +37,11 @@ class TestNamespace(BaseTest):
         ns_name = "test1"
         ns_obj = K8sNamespace(name=ns_name)
         # create namespace
-        orc.namespace.create(ns_obj)
+        orc.namespace.create(body=ns_obj)
         try:
-            orc.namespace.create(ns_obj)
-            raise AssertionError
-        except K8sAlreadyExists:
+            orc.namespace.create(body=ns_obj)
+            raise AssertionError("Did not get exception K8sAlreadyExists")
+        except K8sAlreadyExistsException:
             pass
 
     def test_delete_incorrect_namespace(self, orc):
@@ -50,7 +50,7 @@ class TestNamespace(BaseTest):
         # create namespace
         try:
             orc.namespace.delete(ns_obj)
-            raise AssertionError
+            raise AssertionError("Did not get exception K8sNotFoundException")
         except K8sNotFoundException:
             pass
 
