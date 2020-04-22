@@ -1,20 +1,18 @@
 import logging
 from kubernetes.client import V1Namespace
 
-
 from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
 from exceptions import K8sInvalidResourceBody, K8sNotFoundException
+
 logger = logging.getLogger(__name__)
 
 
 class NamespaceClient(object):
-    def __init__(self,
-                 client_core):
+    def __init__(self, client_core):
         self.client_core = client_core
 
     @wait_for
-    def wait_to_namespace_creation(self,
-                                   namespace_name):
+    def wait_to_namespace_creation(self, namespace_name):
         """
         Wait to namespace creation
         :param namespace_name: the name of the namespace to wait for
@@ -27,9 +25,7 @@ class NamespaceClient(object):
             return False
 
     @k8s_exceptions
-    def create(self,
-               body,
-               wait=True):
+    def create(self, body, wait=True):
         """
         Create namespace
         :param body: namespace's body
@@ -57,8 +53,7 @@ class NamespaceClient(object):
         return namespace_name
 
     @wait_for
-    def wait_to_namespace_deletion(self,
-                                   namespace_name):
+    def wait_to_namespace_deletion(self, namespace_name):
         """
         Wait until the namespace is deleted
         :param namespace_name: the name of the namespace
@@ -71,9 +66,7 @@ class NamespaceClient(object):
             return True
 
     @k8s_exceptions
-    def delete(self,
-               name,
-               wait=False):
+    def delete(self, name, wait=False):
         """
         Delete namespace
         :param name: namespace's name
@@ -91,9 +84,7 @@ class NamespaceClient(object):
             self.wait_to_namespace_deletion(namespace_name=name)
 
     @k8s_exceptions
-    def get(self,
-            name,
-            dict_output=False):
+    def get(self, name, dict_output=False):
         """
         Return namespace obj or dictionary
         :param name: namespace name
@@ -115,9 +106,7 @@ class NamespaceClient(object):
         return namespace
 
     @k8s_exceptions
-    def list(self,
-             dict_output=False,
-             field_selector=""):
+    def list(self, dict_output=False, field_selector=""):
         """
         Return list of namespaces objects/dictionaries
         :param dict_output: to get the elements of the list dictionaries
@@ -136,17 +125,16 @@ class NamespaceClient(object):
                                            field_selector=field_selector)
         # convert the list to list of dicts if required
         if dict_output:
-            namespaces_list = [convert_obj_to_dict(namespace)
-                               for namespace in namespaces_list]
+            namespaces_list = [convert_obj_to_dict(namespace) for namespace in
+                               namespaces_list]
         else:
             for namespace in namespaces_list:
                 namespace.metadata.resource_version = ''
         return namespaces_list
 
-    def list_names(self,
-                   field_selector=""):
-        return [namespace.metadata.name
-                for namespace in self.list(field_selector=field_selector)]
+    def list_names(self, field_selector=""):
+        return [namespace.metadata.name for namespace in
+                self.list(field_selector=field_selector)]
 
 
 if __name__ == "__main__":

@@ -8,39 +8,21 @@ def get_current_timestamp():
     return datetime.utcnow().isoformat("T") + "Z"
 
 
-def unpack(seq,
-           number_to_unpack_first=1):
+def unpack(seq, number_to_unpack_first=1):
     it = iter(seq)
     for x in range(number_to_unpack_first):
         yield next(it, None)
     yield tuple(it)
 
 
-def create_container(image,
-                     container_name,
-                     privileged=None,
-                     as_user=None,
-                     ports_list=None,
-                     env_dict=None,
-                     volumes_dict=None,
-                     resources_limits_dict=None,
-                     resources_requests_dict=None,
-                     image_pull_policy="",
-                     command="",
-                     args=""):
-    container_obj = {
-        "image": image,
-        "name": container_name,
-        "env": [],
-        "volumeMounts": [],
-        "ports": [],
-        "securityContext": {},
+def create_container(image, container_name, privileged=None, as_user=None,
+                     ports_list=None, env_dict=None, volumes_dict=None,
+                     resources_limits_dict=None, resources_requests_dict=None,
+                     image_pull_policy="", command="", args=""):
+    container_obj = {"image": image, "name": container_name, "env": [],
+        "volumeMounts": [], "ports": [], "securityContext": {},
         "imagePullPolicy": image_pull_policy or "Always",
-        "resources": {
-            "requests": {},
-            "limits": {}
-        }
-    }
+        "resources": {"requests": {}, "limits": {}}}
     if command:
         container_obj["command"] = command.split(" ")
     if args:
@@ -60,9 +42,7 @@ def create_container(image,
             container_obj["ports"].append(port_obj)
     if env_dict is not None:
         for env, val in env_dict.iteritems():
-            container_obj["env"].append({"name": env,
-                                         "value": val}
-                                        )
+            container_obj["env"].append({"name": env, "value": val})
     if volumes_dict is not None:
         for host_vol, mount_vol in volumes_dict.iteritems():
             readonly = False
@@ -71,10 +51,8 @@ def create_container(image,
                 mount_vol = mount_vol[:-3]
 
             container_obj["volumeMounts"].append(
-                {"name": mount_vol,
-                 "mountPath": mount_vol,
-                 "readOnly": readonly}
-            )
+                {"name": mount_vol, "mountPath": mount_vol,
+                 "readOnly": readonly})
     if resources_requests_dict is not None:
         container_obj['resources']['requests'] = resources_requests_dict
     if resources_limits_dict is not None:
@@ -83,11 +61,7 @@ def create_container(image,
 
 
 class K8sResource(dict):
-    def __init__(self,
-                 kind="",
-                 name="",
-                 api_version="",
-                 body=None):
+    def __init__(self, kind="", name="", api_version="", body=None):
         body = body or {}
         super(K8sResource, self).__init__()
         self["metadata"] = {}
@@ -121,8 +95,7 @@ class K8sResource(dict):
         return self["metadata"].get("name")
 
     @name.setter
-    def name(self,
-             name):
+    def name(self, name):
         self["metadata"]["name"] = name
 
     @property
@@ -130,8 +103,7 @@ class K8sResource(dict):
         return self["metadata"].get("namespace")
 
     @namespace.setter
-    def namespace(self,
-                  namespace):
+    def namespace(self, namespace):
         self["metadata"]["namespace"] = namespace
 
     @property
@@ -139,8 +111,7 @@ class K8sResource(dict):
         return self["kind"]
 
     @kind.setter
-    def kind(self,
-             kind):
+    def kind(self, kind):
         self["kind"] = kind
 
     @property
@@ -148,8 +119,7 @@ class K8sResource(dict):
         return self["apiVersion"]
 
     @api_version.setter
-    def api_version(self,
-                    api_version):
+    def api_version(self, api_version):
         self["apiVersion"] = api_version
 
     @property
@@ -157,8 +127,7 @@ class K8sResource(dict):
         return self["metadata"].get("generation")
 
     @generation.setter
-    def generation(self,
-                   generation):
+    def generation(self, generation):
         self["metadata"]["generation"] = generation
 
     @property
@@ -166,8 +135,7 @@ class K8sResource(dict):
         return self["metadata"].get("creationTimestamp")
 
     @creation_timestamp.setter
-    def creation_timestamp(self,
-                           creation_timestamp):
+    def creation_timestamp(self, creation_timestamp):
         self["metadata"]["creationTimestamp"] = creation_timestamp
 
     @property
@@ -175,8 +143,7 @@ class K8sResource(dict):
         return self["spec"].get("selector")
 
     @selector.setter
-    def selector(self,
-                 selector):
+    def selector(self, selector):
         self["spec"]["selector"] = selector
 
     @property
@@ -184,12 +151,10 @@ class K8sResource(dict):
         return self["metadata"].get("labels")
 
     @labels.setter
-    def labels(self,
-               labels):
+    def labels(self, labels):
         self["metadata"]["labels"] = labels
 
-    def add_labels(self,
-                   labels):
+    def add_labels(self, labels):
         for name, label in labels.iteritems():
             self["metadata"].setdefault("labels", {})[name] = label
 

@@ -1,7 +1,6 @@
 import logging
 from kubernetes.client import V1Service
 
-
 from consts import DEFAULT_NAMESPACE
 from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
 from exceptions import K8sInvalidResourceBody, K8sException, \
@@ -11,14 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceClient(object):
-    def __init__(self,
-                 client_core):
+    def __init__(self, client_core):
         self.client_core = client_core
 
     @wait_for
-    def wait_to_service_creation(self,
-                                 service_name,
-                                 namespace):
+    def wait_to_service_creation(self, service_name, namespace):
         """
         Wait to service creation
         :param service_name: the name of the service to wait for
@@ -28,16 +24,14 @@ class ServiceClient(object):
         :type namespace: str
         """
         try:
-            service = self.get(name=service_name,
-                               namespace=namespace)
-            if not (hasattr(service, 'spec') and
-                    hasattr(service.spec, 'type')):
+            service = self.get(name=service_name, namespace=namespace)
+            if not (hasattr(service, 'spec') and hasattr(service.spec, 'type')):
                 return False
             if service.spec.type == "LoadBalancer":
-                if not (hasattr(service, 'status') and
-                        hasattr(service.status, 'load_balancer') and
-                        hasattr(service.status.load_balancer, 'ingress') and
-                        service.status.load_balancer.ingress is not None):
+                if not (hasattr(service, 'status') and hasattr(service.status,
+                                                               'load_balancer') and hasattr(
+                    service.status.load_balancer,
+                    'ingress') and service.status.load_balancer.ingress is not None):
                     return False
                 else:
                     return True
@@ -47,10 +41,7 @@ class ServiceClient(object):
             return False
 
     @k8s_exceptions
-    def create(self,
-               body,
-               namespace=DEFAULT_NAMESPACE,
-               wait=True):
+    def create(self, body, namespace=DEFAULT_NAMESPACE, wait=True):
         """
         Create service
         :param body: service's body
@@ -66,8 +57,8 @@ class ServiceClient(object):
         try:
             if isinstance(body, V1Service):
                 service_name = body.metadata.name
-                if hasattr(body, "metadata") and \
-                        hasattr(body.metadata, "namespace"):
+                if hasattr(body, "metadata") and hasattr(body.metadata,
+                                                         "namespace"):
                     namespace = body.metadata.namespace
             elif isinstance(body, dict):
                 service_name = body["metadata"]["name"]
@@ -89,9 +80,7 @@ class ServiceClient(object):
         return service_name
 
     @wait_for
-    def wait_to_service_deletion(self,
-                                 service_name,
-                                 namespace):
+    def wait_to_service_deletion(self, service_name, namespace):
         """
         Wait until the service is deleted
         :param service_name: the name of the service
@@ -101,17 +90,13 @@ class ServiceClient(object):
         :type namespace: str
         """
         try:
-            self.get(name=service_name,
-                     namespace=namespace)
+            self.get(name=service_name, namespace=namespace)
             return False
         except K8sNotFoundException:
             return True
 
     @k8s_exceptions
-    def delete(self,
-               name,
-               namespace=DEFAULT_NAMESPACE,
-               wait=True):
+    def delete(self, name, namespace=DEFAULT_NAMESPACE, wait=True):
         """
         Delete service
         :param name: service's name
@@ -133,10 +118,7 @@ class ServiceClient(object):
                                           namespace=namespace)
 
     @k8s_exceptions
-    def get(self,
-            name,
-            namespace=DEFAULT_NAMESPACE,
-            dict_output=False):
+    def get(self, name, namespace=DEFAULT_NAMESPACE, dict_output=False):
         """
         Return service obj or dictionary
         :param name: service name
@@ -161,25 +143,16 @@ class ServiceClient(object):
 
         return service
 
-    def get_ports(self,
-                  name,
-                  namespace):
-        return self.get(name=name,
-                        namespace=namespace).spec.ports
+    def get_ports(self, name, namespace):
+        return self.get(name=name, namespace=namespace).spec.ports
 
-    def get_cluster_ip(self,
-                       name,
-                       namespace):
-        return self.get(name=name,
-                        namespace=namespace).spec.cluster_ip
+    def get_cluster_ip(self, name, namespace):
+        return self.get(name=name, namespace=namespace).spec.cluster_ip
 
-    def get_external_ip(self,
-                        name,
-                        namespace):
-        service = self.get(name=name,
-                           namespace=namespace)
-        if hasattr(service, 'spec') and hasattr(service.spec, 'type') and \
-                service.spec.type == "LoadBalancer":
+    def get_external_ip(self, name, namespace):
+        service = self.get(name=name, namespace=namespace)
+        if hasattr(service, 'spec') and hasattr(service.spec,
+                                                'type') and service.spec.type == "LoadBalancer":
             try:
                 external_ip = service.status.load_balancer.ingress[0].ip
                 return external_ip
@@ -190,11 +163,8 @@ class ServiceClient(object):
                                        " has external ip")
 
     @k8s_exceptions
-    def list(self,
-             namespace=DEFAULT_NAMESPACE,
-             all_namespaces=False,
-             dict_output=False,
-             field_selector=""):
+    def list(self, namespace=DEFAULT_NAMESPACE, all_namespaces=False,
+             dict_output=False, field_selector=""):
         """
         Return list of services objects/dictionaries
         :param namespace: the namespace of the service
@@ -211,8 +181,7 @@ class ServiceClient(object):
         :rtype: list
         """
         if all_namespaces:
-            services_list = self.client_core.list_service_for_all_namespaces(
-            ).items
+            services_list = self.client_core.list_service_for_all_namespaces().items
             logger.info("Got services list from all the namespaces")
         else:
             services_list = self.client_core.list_namespaced_service(
@@ -224,27 +193,21 @@ class ServiceClient(object):
                                          field_selector=field_selector)
         # convert the list to list of dicts if required
         if dict_output:
-            services_list = [convert_obj_to_dict(service)
-                             for service in services_list]
+            services_list = [convert_obj_to_dict(service) for service in
+                             services_list]
         else:
             for service in services_list:
                 service.metadata.resource_version = ''
         return services_list
 
-    def list_names(self,
-                   namespace=DEFAULT_NAMESPACE,
-                   all_namespaces=False,
+    def list_names(self, namespace=DEFAULT_NAMESPACE, all_namespaces=False,
                    field_selector=""):
-        return [service.metadata.name
-                for service in self.list(namespace=namespace,
-                                         all_namespaces=all_namespaces,
-                                         field_selector=field_selector)]
+        return [service.metadata.name for service in
+                self.list(namespace=namespace, all_namespaces=all_namespaces,
+                          field_selector=field_selector)]
 
     @k8s_exceptions
-    def events(self,
-               name,
-               namespace=DEFAULT_NAMESPACE,
-               only_messages=False):
+    def events(self, name, namespace=DEFAULT_NAMESPACE, only_messages=False):
         """
         Return the list of the events of a specific service
         :param name: the name of the service
@@ -257,23 +220,18 @@ class ServiceClient(object):
         :return: the list of the events
         :rtype: list
         """
-        service_id = self.get(name=name,
-                              namespace=namespace).metadata.uid
-        events = self.client_core.list_namespaced_event(
-            namespace=namespace,
+        service_id = self.get(name=name, namespace=namespace).metadata.uid
+        events = self.client_core.list_namespaced_event(namespace=namespace,
             field_selector=f"involvedObject.uid=={service_id}").items
         logger.info(f"Got the events of service {name} from namespace "
                     f"{namespace}")
         if only_messages:
-            events = [event["message"] for event in events
-                      if event.get("message") is not None]
+            events = [event["message"] for event in events if
+                      event.get("message") is not None]
         return events
 
     @k8s_exceptions
-    def patch(self,
-              name,
-              body,
-              namespace=DEFAULT_NAMESPACE):
+    def patch(self, name, body, namespace=DEFAULT_NAMESPACE):
         """
         Patch service
         :param name: the name of the service

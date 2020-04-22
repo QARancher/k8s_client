@@ -1,7 +1,6 @@
 import yaml
 from kubernetes import client, config
 
-
 from pod import PodClient
 from node import NodeClient
 from secret import SecretClient
@@ -10,17 +9,14 @@ from namespace import NamespaceClient
 from daemonset import DaemonSetClient
 from deployment import DeploymentClient
 from exceptions import K8sInvalidResourceBody
-from consts import (
-    WAIT_TIMEOUT,
-    DEFAULT_MAX_THREADS, KUBECONFIG_PATH,
+from consts import (WAIT_TIMEOUT, DEFAULT_MAX_THREADS, KUBECONFIG_PATH,
 
 )
 
 
 class K8sClient(object):
 
-    def __init__(self,
-                 kubeconfig_path=KUBECONFIG_PATH):
+    def __init__(self, kubeconfig_path=KUBECONFIG_PATH):
         # Configure the client to the k8s environment
         config.load_kube_config(kubeconfig_path)
         configuration = client.Configuration()
@@ -31,8 +27,7 @@ class K8sClient(object):
 
         # Create the instances of the resources
         self.pod = PodClient(client_core=client_core)
-        self.deployment = DeploymentClient(client_app=client_app,
-                                           pod=self.pod)
+        self.deployment = DeploymentClient(client_app=client_app, pod=self.pod)
         self.daemon_set = DaemonSetClient(client_app=client_app,
                                           deployment=self.deployment,
                                           pod=self.pod)
@@ -41,9 +36,7 @@ class K8sClient(object):
         self.secret = SecretClient(client_core=client_core)
         self.service = ServiceClient(client_core=client_core)
 
-    def create_from_yaml(self,
-                         yaml_path,
-                         wait=True,
+    def create_from_yaml(self, yaml_path, wait=True,
                          max_threads=DEFAULT_MAX_THREADS):
         with open(yaml_path, "r") as f:
             for resource in yaml.load_all(f.read()):
@@ -51,25 +44,19 @@ class K8sClient(object):
                     raise K8sInvalidResourceBody()
 
                 if resource["kind"] == "Pod":
-                    self.pod.create(body=resource,
-                                    wait=wait)
+                    self.pod.create(body=resource, wait=wait)
                 if resource["kind"] == "Deployment":
-                    self.deployment.create(body=resource,
-                                           wait=wait,
+                    self.deployment.create(body=resource, wait=wait,
                                            max_threads=max_threads)
                 if resource["kind"] == "DaemonSet":
-                    self.daemon_set.create(body=resource,
-                                           wait=wait,
+                    self.daemon_set.create(body=resource, wait=wait,
                                            max_threads=max_threads)
                 if resource["kind"] == "Namespace":
-                    self.namespace.create(body=resource,
-                                          wait=wait)
+                    self.namespace.create(body=resource, wait=wait)
                 if resource["kind"] == "Secret":
-                    self.pod.create(body=resource,
-                                    wait=wait)
+                    self.pod.create(body=resource, wait=wait)
                 if resource["kind"] == "Service":
-                    self.service.create(body=resource,
-                                        wait=wait)
+                    self.service.create(body=resource, wait=wait)
                 else:
                     raise K8sInvalidResourceBody("unsupported resource type")
 

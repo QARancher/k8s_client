@@ -2,14 +2,9 @@ import logging
 import threading
 from kubernetes.client import V1Deployment
 
-
 from utils import (convert_obj_to_dict, split_list_to_chunks, field_filter,
                    k8s_exceptions, wait_for)
-from consts import (
-    DEFAULT_NAMESPACE,
-    REPLICAS_THRESHOLD,
-    DEFAULT_MAX_THREADS
-)
+from consts import (DEFAULT_NAMESPACE, REPLICAS_THRESHOLD, DEFAULT_MAX_THREADS)
 
 from exceptions import K8sInvalidResourceBody
 
@@ -18,15 +13,11 @@ logger = logging.getLogger(__name__)
 
 class DeploymentClient(object):
 
-    def __init__(self,
-                 client_app,
-                 pod):
+    def __init__(self, client_app, pod):
         self.client_app = client_app
         self.pod = pod
 
-    def finished_to_create_ready_replicas(self,
-                                          name,
-                                          namespace):
+    def finished_to_create_ready_replicas(self, name, namespace):
         """
         Return if the replicas of a deployment are created
         :param name: the name of the deployment
@@ -37,13 +28,11 @@ class DeploymentClient(object):
         :return: created or not (True/False)
         :rtype: bool
         """
-        deployment = self.get(name=name,
-                              namespace=namespace)
+        deployment = self.get(name=name, namespace=namespace)
         return deployment.spec.replicas == deployment.status.replicas
 
     @staticmethod
-    def wait_for_pods_thread(pod_wait_func,
-                             pod_kwargs_list):
+    def wait_for_pods_thread(pod_wait_func, pod_kwargs_list):
         """
         Thread function that runs the input function with the input vars
         :param pod_wait_func: function to run in thread
@@ -55,8 +44,7 @@ class DeploymentClient(object):
             pod_wait_func(**kwargs)
 
     @wait_for
-    def wait_for_pods_creation_thread_manager(self,
-                                              pods,
+    def wait_for_pods_creation_thread_manager(self, pods,
                                               namespace=DEFAULT_NAMESPACE,
                                               max_threads=DEFAULT_MAX_THREADS):
         """
@@ -74,37 +62,28 @@ class DeploymentClient(object):
             threads = []
             kwargs_list = []
             for pod in pods:
-                kwargs = {
-                    "pod_name": pod.metadata.name,
+                kwargs = {"pod_name": pod.metadata.name,
                     "pod_id": pod.metadata.uid,
                     "containers_counter": len(pod.spec.containers),
-                    "namespace": namespace
-                          }
+                    "namespace": namespace}
                 kwargs_list.append(kwargs)
-            for pods_kwargs in split_list_to_chunks(
-                    list_to_slice=kwargs_list,
+            for pods_kwargs in split_list_to_chunks(list_to_slice=kwargs_list,
                     number_of_chunks=max_threads):
                 threads.append(
-                    threading.Thread(
-                        target=self.wait_for_pods_thread,
-                        args=(self.pod.wait_for_containers_to_run, pods_kwargs)
-                        )
-                    )
+                    threading.Thread(target=self.wait_for_pods_thread, args=(
+                    self.pod.wait_for_containers_to_run, pods_kwargs)))
                 threads[len(threads) - 1].start()
             for thread in threads:
                 thread.join()
         else:
             for pod in pods:
-                self.pod.wait_for_containers_to_run(
-                    pod_name=pod.metadata.name,
+                self.pod.wait_for_containers_to_run(pod_name=pod.metadata.name,
                     pod_id=pod.metadata.uid,
                     containers_counter=len(pod.spec.containers),
-                    namespace=namespace
-                )
+                    namespace=namespace)
 
     @wait_for
-    def wait_for_deployment_to_run(self,
-                                   deployment_name,
+    def wait_for_deployment_to_run(self, deployment_name,
                                    namespace=DEFAULT_NAMESPACE,
                                    max_threads=DEFAULT_MAX_THREADS):
         """
@@ -121,18 +100,13 @@ class DeploymentClient(object):
         if not self.finished_to_create_ready_replicas(name=deployment_name,
                                                       namespace=namespace):
             return False
-        self.wait_for_pods_creation_thread_manager(pods=self.get_pods(
-                                                        name=deployment_name,
-                                                        namespace=namespace),
-                                                   namespace=namespace,
-                                                   max_threads=max_threads)
+        self.wait_for_pods_creation_thread_manager(
+            pods=self.get_pods(name=deployment_name, namespace=namespace),
+            namespace=namespace, max_threads=max_threads)
         return True
 
     @k8s_exceptions
-    def create(self,
-               body,
-               namespace=DEFAULT_NAMESPACE,
-               wait=True,
+    def create(self, body, namespace=DEFAULT_NAMESPACE, wait=True,
                max_threads=DEFAULT_MAX_THREADS):
         """
         Create deployment
@@ -154,8 +128,8 @@ class DeploymentClient(object):
         try:
             if isinstance(body, V1Deployment):
                 deployment_name = body.metadata.name
-                if hasattr(body, "metadata") and \
-                        hasattr(body.metadata, "namespace"):
+                if hasattr(body, "metadata") and hasattr(body.metadata,
+                                                         "namespace"):
                     namespace = body.metadata.namespace
             elif isinstance(body, dict):
                 deployment_name = body["metadata"]["name"]
@@ -166,8 +140,7 @@ class DeploymentClient(object):
             raise K8sInvalidResourceBody()
 
         # create the deployment from the body
-        self.client_app.create_namespaced_deployment(
-            body=body,
+        self.client_app.create_namespaced_deployment(body=body,
             namespace=namespace)
         logger.info(f"Created the deployment {deployment_name} in {namespace} "
                     "namespace")
@@ -179,11 +152,8 @@ class DeploymentClient(object):
         return deployment_name
 
     @wait_for
-    def wait_for_pods_to_be_deleted_thread_manager(
-            self,
-            pods,
-            namespace=DEFAULT_NAMESPACE,
-            max_threads=DEFAULT_MAX_THREADS):
+    def wait_for_pods_to_be_deleted_thread_manager(self, pods,
+            namespace=DEFAULT_NAMESPACE, max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the deployment's pods are deleted
         :param pods: the deployment's pods
@@ -199,35 +169,24 @@ class DeploymentClient(object):
             threads = []
             kwargs_list = []
             for pod in pods:
-                kwargs = {
-                    "pod_name": pod.metadata.name,
-                    "namespace": namespace
-                          }
+                kwargs = {"pod_name": pod.metadata.name, "namespace": namespace}
                 kwargs_list.append(kwargs)
-            for pods_kwargs in split_list_to_chunks(
-                    list_to_slice=kwargs_list,
+            for pods_kwargs in split_list_to_chunks(list_to_slice=kwargs_list,
                     number_of_chunks=max_threads):
                 threads.append(
-                    threading.Thread(
-                        target=self.wait_for_pods_thread,
-                        args=(self.pod.wait_for_pod_to_be_deleted, pods_kwargs)
-                        )
-                    )
+                    threading.Thread(target=self.wait_for_pods_thread, args=(
+                    self.pod.wait_for_pod_to_be_deleted, pods_kwargs)))
                 threads[len(threads) - 1].start()
             for thread in threads:
                 thread.join()
         else:
             for pod in pods:
-                self.pod.wait_for_pod_to_be_deleted(
-                    pod_name=pod.metadata.name,
+                self.pod.wait_for_pod_to_be_deleted(pod_name=pod.metadata.name,
                     namespace=namespace)
         return True
 
     @k8s_exceptions
-    def delete(self,
-               name,
-               namespace=DEFAULT_NAMESPACE,
-               wait=False,
+    def delete(self, name, namespace=DEFAULT_NAMESPACE, wait=False,
                max_threads=DEFAULT_MAX_THREADS):
         """
         Delete deployment
@@ -244,8 +203,7 @@ class DeploymentClient(object):
         :type: max_threads: int
         """
         # get pods before the deleting
-        pods = self.get_pods(name=name,
-                             namespace=namespace)
+        pods = self.get_pods(name=name, namespace=namespace)
 
         # delete the pod from the required namespace
         self.client_app.delete_namespaced_deployment(name=name,
@@ -255,15 +213,11 @@ class DeploymentClient(object):
         # wait to the pods to be deleted
         if wait:
             logger.info(f"Wait to {name} to be deleted")
-            self.wait_for_pods_to_be_deleted_thread_manager(
-                pods=pods,
-                namespace=namespace,
-                max_threads=max_threads)
+            self.wait_for_pods_to_be_deleted_thread_manager(pods=pods,
+                namespace=namespace, max_threads=max_threads)
 
     @wait_for
-    def wait_for_deployment_to_patch(self,
-                                     name,
-                                     pods,
+    def wait_for_deployment_to_patch(self, name, pods,
                                      namespace=DEFAULT_NAMESPACE,
                                      max_threads=DEFAULT_MAX_THREADS):
         """
@@ -279,21 +233,15 @@ class DeploymentClient(object):
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
         """
-        self.wait_for_pods_to_be_deleted_thread_manager(
-            pods=pods,
-            namespace=namespace,
-            max_threads=max_threads)
+        self.wait_for_pods_to_be_deleted_thread_manager(pods=pods,
+            namespace=namespace, max_threads=max_threads)
         self.wait_for_deployment_to_run(deployment_name=name,
                                         namespace=namespace,
                                         max_threads=max_threads)
         return True
 
     @k8s_exceptions
-    def patch(self,
-              name,
-              body,
-              namespace=DEFAULT_NAMESPACE,
-              wait=True,
+    def patch(self, name, body, namespace=DEFAULT_NAMESPACE, wait=True,
               max_threads=DEFAULT_MAX_THREADS):
         """
         Patch deployment
@@ -311,22 +259,18 @@ class DeploymentClient(object):
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
         """
-        pods = self.get(name=name,
-                        namespace=namespace)
+        pods = self.get(name=name, namespace=namespace)
         self.client_app.patch_namespaced_deployment(name=name,
                                                     namespace=namespace,
                                                     body=body)
         logger.info(f"Patched deployment {name} from namespace {namespace}")
         if wait:
-            self.wait_for_deployment_to_patch(name=name,
-                                              pods=pods,
+            self.wait_for_deployment_to_patch(name=name, pods=pods,
                                               namespace=namespace,
                                               max_threads=max_threads)
 
     @wait_for
-    def wait_for_deployment_to_scale_up(self,
-                                        name,
-                                        pods,
+    def wait_for_deployment_to_scale_up(self, name, pods,
                                         namespace=DEFAULT_NAMESPACE,
                                         max_threads=DEFAULT_MAX_THREADS):
         """
@@ -346,8 +290,7 @@ class DeploymentClient(object):
                                                       namespace=namespace):
             return False
 
-        new_pods = [pod for pod in self.get_pods(name=name,
-                                                 namespace=namespace)
+        new_pods = [pod for pod in self.get_pods(name=name, namespace=namespace)
                     if pod not in pods]
         self.wait_for_pods_creation_thread_manager(pods=new_pods,
                                                    namespace=namespace,
@@ -355,9 +298,7 @@ class DeploymentClient(object):
         return True
 
     @wait_for
-    def wait_for_deployment_to_scale_down(self,
-                                          name,
-                                          new_size,
+    def wait_for_deployment_to_scale_down(self, name, new_size,
                                           namespace=DEFAULT_NAMESPACE):
         """
         Wait until the deployment is scaled down
@@ -369,17 +310,13 @@ class DeploymentClient(object):
         (default value is 'default')
         :type namespace: str
         """
-        is_scaled_down = len(self.get_pods(name=name,
-                                           namespace=namespace)) == new_size
+        is_scaled_down = len(
+            self.get_pods(name=name, namespace=namespace)) == new_size
         if is_scaled_down:
             return True
         return is_scaled_down
 
-    def scale(self,
-              name,
-              new_size,
-              namespace=DEFAULT_NAMESPACE,
-              wait=True,
+    def scale(self, name, new_size, namespace=DEFAULT_NAMESPACE, wait=True,
               max_threads=DEFAULT_MAX_THREADS):
         """
         Scale deployment
@@ -397,19 +334,14 @@ class DeploymentClient(object):
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
         """
-        pods = self.get_pods(name=name,
-                             namespace=namespace)
+        pods = self.get_pods(name=name, namespace=namespace)
         body = {"spec": {"replicas": new_size}}
-        self.patch(name=name,
-                   body=body,
-                   namespace=namespace,
-                   wait=False,
+        self.patch(name=name, body=body, namespace=namespace, wait=False,
                    max_threads=max_threads)
         logger.info(f"Scaled deployment {name} from namespace {namespace}")
         if wait:
             if new_size > len(pods):
-                self.wait_for_deployment_to_scale_up(name=name,
-                                                     pods=pods,
+                self.wait_for_deployment_to_scale_up(name=name, pods=pods,
                                                      namespace=namespace,
                                                      max_threads=max_threads)
             elif new_size < len(pods):
@@ -417,10 +349,7 @@ class DeploymentClient(object):
                                                        new_size=new_size,
                                                        namespace=namespace)
 
-    def scale_down_up(self,
-                      name,
-                      namespace=DEFAULT_NAMESPACE,
-                      wait=True,
+    def scale_down_up(self, name, namespace=DEFAULT_NAMESPACE, wait=True,
                       max_threads=DEFAULT_MAX_THREADS):
         """
         Scale down and up deployment
@@ -436,24 +365,14 @@ class DeploymentClient(object):
         (default value is DEFAULT_MAX_THREADS)
         :type: max_threads: int
         """
-        replicas = self.get(name=name,
-                            namespace=namespace).spec.replicas
-        self.scale(name=name,
-                   new_size=0,
-                   namespace=namespace,
-                   wait=wait,
+        replicas = self.get(name=name, namespace=namespace).spec.replicas
+        self.scale(name=name, new_size=0, namespace=namespace, wait=wait,
                    max_threads=max_threads)
-        self.scale(name=name,
-                   new_size=replicas,
-                   namespace=namespace,
-                   wait=wait,
+        self.scale(name=name, new_size=replicas, namespace=namespace, wait=wait,
                    max_threads=max_threads)
 
     @k8s_exceptions
-    def get(self,
-            name,
-            namespace=DEFAULT_NAMESPACE,
-            dict_output=False):
+    def get(self, name, namespace=DEFAULT_NAMESPACE, dict_output=False):
         """
         Return deployment obj or dictionary
         :param name: deployment name
@@ -466,8 +385,7 @@ class DeploymentClient(object):
         :return: the deployment obj/dictionary
         :rtype: Union[V1Deployment,dictionary]
         """
-        deployment = self.client_app.read_namespaced_deployment(
-            name=name,
+        deployment = self.client_app.read_namespaced_deployment(name=name,
             namespace=namespace)
         logger.info(f"Got deployment {name} from {namespace} namespace")
         # convert the obj to dict if required
@@ -478,11 +396,8 @@ class DeploymentClient(object):
         return deployment
 
     @k8s_exceptions
-    def list(self,
-             namespace=DEFAULT_NAMESPACE,
-             all_namespaces=False,
-             dict_output=False,
-             field_selector=""):
+    def list(self, namespace=DEFAULT_NAMESPACE, all_namespaces=False,
+             dict_output=False, field_selector=""):
         """
         Return list of deployments objects/dictionaries
         :param namespace: the namespace of the deployment
@@ -499,8 +414,7 @@ class DeploymentClient(object):
         :rtype: list
         """
         if all_namespaces:
-            deployments_list = \
-                self.client_app.list_deployment_for_all_namespaces().items
+            deployments_list = self.client_app.list_deployment_for_all_namespaces().items
             logger.info("Got the deployments list from all the namespaces")
         else:
             deployments_list = self.client_app.list_namespaced_deployment(
@@ -513,28 +427,22 @@ class DeploymentClient(object):
 
         # convert the list to list of dicts if required
         if dict_output:
-            deployments_list = [convert_obj_to_dict(deployment)
-                                for deployment in deployments_list]
+            deployments_list = [convert_obj_to_dict(deployment) for deployment
+                                in deployments_list]
         else:
             for deployment in deployments_list:
                 deployment.metadata.resource_version = ''
 
         return deployments_list
 
-    def list_names(self,
-                   namespace=DEFAULT_NAMESPACE,
-                   all_namespaces=False,
+    def list_names(self, namespace=DEFAULT_NAMESPACE, all_namespaces=False,
                    field_selector=""):
-        return [deployment.metadata.name
-                for deployment in self.list(namespace=namespace,
-                                            all_namespaces=all_namespaces,
-                                            field_selector=field_selector)]
+        return [deployment.metadata.name for deployment in
+                self.list(namespace=namespace, all_namespaces=all_namespaces,
+                          field_selector=field_selector)]
 
     @k8s_exceptions
-    def get_pods(self,
-                 name,
-                 namespace=DEFAULT_NAMESPACE,
-                 dict_output=False):
+    def get_pods(self, name, namespace=DEFAULT_NAMESPACE, dict_output=False):
         """
         Return the pods of the deployment
         :param name: the name of the deployment
@@ -549,16 +457,13 @@ class DeploymentClient(object):
         :rtype: list
         """
         deploy_replica_sets = self.client_app.list_namespaced_replica_set(
-            namespace=namespace
-        ).items
-        deploy_replica_sets = field_filter(
-            obj_list=deploy_replica_sets,
+            namespace=namespace).items
+        deploy_replica_sets = field_filter(obj_list=deploy_replica_sets,
             field_selector=f"metadata.owner_references[0].kind==Deployment, "
                            f"metadata.owner_references[0].name=={name}")
         pods_list = []
         for deploy_replica_set in deploy_replica_sets:
-            pods_list.extend(self.pod.list(
-                namespace=namespace,
+            pods_list.extend(self.pod.list(namespace=namespace,
                 field_selector=f"metadata.owner_references[0].kind==ReplicaSet,"
                                f"metadata.owner_references[0].name=="
                                f"{deploy_replica_set.metadata.name}",
@@ -566,10 +471,7 @@ class DeploymentClient(object):
         return pods_list
 
     @k8s_exceptions
-    def events(self,
-               name,
-               namespace=DEFAULT_NAMESPACE,
-               only_messages=False):
+    def events(self, name, namespace=DEFAULT_NAMESPACE, only_messages=False):
         """
         Return the list of the events of a specific deployment
         :param name: the name of the deployment
@@ -582,16 +484,14 @@ class DeploymentClient(object):
         :return: the list of the events
         :rtype: list
         """
-        deployment_uid = self.get(name=name,
-                                  namespace=namespace).metadata.uid
-        events = self.client_app.list_namespaced_event(
-            namespace=namespace,
+        deployment_uid = self.get(name=name, namespace=namespace).metadata.uid
+        events = self.client_app.list_namespaced_event(namespace=namespace,
             field_selector=f"involvedObject.uid=={deployment_uid}").items
         logger.info(f"Got the events of deployment {name} from namespace "
                     f"{namespace}")
         if only_messages:
-            events = [event["message"] for event in events
-                      if event.get("message") is not None]
+            events = [event["message"] for event in events if
+                      event.get("message") is not None]
         return events
 
 

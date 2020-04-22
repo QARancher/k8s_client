@@ -2,37 +2,23 @@ import logging
 from kubernetes.client import V1Pod
 from kubernetes.stream import stream
 
-
 from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
-from exceptions import (
-    K8sInvalidResourceBody,
-    K8sAuthenticationException,
-    K8sPullingException,
-    K8sNotFoundException,
-    K8sRuntimeException
-)
-from consts import (
-    DEFAULT_NAMESPACE,
-    COMPLETE_STATE,
-    AUTHENTICATION_EXCEPTION,
-    PULLING_EXCEPTION,
-    CREATED_SUCCESSFULLY,
-    ERROR_STATE,
-    PULLING_FAIL
-)
-
+from exceptions import (K8sInvalidResourceBody, K8sAuthenticationException,
+                        K8sPullingException, K8sNotFoundException,
+                        K8sRuntimeException)
+from consts import (DEFAULT_NAMESPACE, COMPLETE_STATE, AUTHENTICATION_EXCEPTION,
+                    PULLING_EXCEPTION, CREATED_SUCCESSFULLY, ERROR_STATE,
+                    PULLING_FAIL)
 
 logger = logging.getLogger(__name__)
 
 
 class PodClient(object):
-    def __init__(self,
-                 client_core):
+    def __init__(self, client_core):
         self.client_core = client_core
 
     @staticmethod
-    def check_container_state(container_status,
-                              running_containers):
+    def check_container_state(container_status, running_containers):
         """
         Check if the container is running by its status
         :param container_status: the status of the checked container
@@ -59,19 +45,15 @@ class PodClient(object):
             if container_status["terminated"].get("reason") is not None:
                 reason = container_status["terminated"]["reason"]
 
-        if message is not None and ERROR_STATE in message or \
-                reason is not None and ERROR_STATE in reason:
+        if message is not None and ERROR_STATE in message or reason is not None and ERROR_STATE in reason:
             raise K8sRuntimeException()
-        if message is not None and COMPLETE_STATE in message or \
-                reason is not None and COMPLETE_STATE in reason:
+        if message is not None and COMPLETE_STATE in message or reason is not None and COMPLETE_STATE in reason:
             running_containers += 1
 
         return running_containers
 
     @k8s_exceptions
-    def is_containers_started(self,
-                              pod_id,
-                              containers_counter,
+    def is_containers_started(self, pod_id, containers_counter,
                               namespace=DEFAULT_NAMESPACE):
         """
         Check if the all containers started
@@ -88,24 +70,18 @@ class PodClient(object):
         events_list = self.client_core.list_namespaced_event(
             namespace=namespace,
             field_selector="involvedObject.uid=={pod_uid}".format(
-                pod_uid=pod_id
-            )
-        )
+                pod_uid=pod_id))
         for event in events_list.items:
             if AUTHENTICATION_EXCEPTION in event.message:
                 raise K8sAuthenticationException(message=event.message)
-            if PULLING_EXCEPTION in event.message or \
-                    PULLING_FAIL in event.message:
+            if PULLING_EXCEPTION in event.message or PULLING_FAIL in event.message:
                 raise K8sPullingException(message=event.message)
             if CREATED_SUCCESSFULLY in event.message:
                 containers_counter -= 1
         return not containers_counter
 
     @wait_for
-    def wait_for_containers_to_run(self,
-                                   pod_name,
-                                   pod_id,
-                                   containers_counter,
+    def wait_for_containers_to_run(self, pod_name, pod_id, containers_counter,
                                    namespace=DEFAULT_NAMESPACE):
         """
         Wait until the containers are running
@@ -119,20 +95,17 @@ class PodClient(object):
         :param namespace: the namespace of the pod (default value is 'default')
         :type namespace: str
         """
-        if not self.is_containers_started(
-                pod_id=pod_id,
-                containers_counter=containers_counter,
-                namespace=namespace):
+        if not self.is_containers_started(pod_id=pod_id,
+                containers_counter=containers_counter, namespace=namespace):
             return False
 
-        pod_dict = self.get(name=pod_name,
-                            namespace=namespace,
+        pod_dict = self.get(name=pod_name, namespace=namespace,
                             dict_output=True)
         if not pod_dict.get("status", {}).get("containerStatuses", []):
             return False
         container_statuses = pod_dict["status"]["containerStatuses"]
-        if not all("state" in container_status
-                   for container_status in container_statuses):
+        if not all("state" in container_status for container_status in
+                   container_statuses):
             return False
         else:
             running_containers = 0
@@ -142,8 +115,7 @@ class PodClient(object):
                 running_containers = PodClient.check_container_state(
                     container_status=container_status["state"],
                     running_containers=running_containers)
-                if running_containers_before == running_containers and \
-                        "lastState" in container_status:
+                if running_containers_before == running_containers and "lastState" in container_status:
                     running_containers = PodClient.check_container_state(
                         container_status=container_status["lastState"],
                         running_containers=running_containers)
@@ -154,10 +126,7 @@ class PodClient(object):
                 return True
 
     @k8s_exceptions
-    def create(self,
-               body,
-               namespace=DEFAULT_NAMESPACE,
-               wait=True):
+    def create(self, body, namespace=DEFAULT_NAMESPACE, wait=True):
         """
         Create pod
         :param body: pod's body
@@ -175,8 +144,8 @@ class PodClient(object):
         try:
             if isinstance(body, V1Pod):
                 pod_name = body.metadata.name
-                if hasattr(body, "metadata") and \
-                        hasattr(body.metadata, "namespace"):
+                if hasattr(body, "metadata") and hasattr(body.metadata,
+                                                         "namespace"):
                     namespace = body.metadata.namespace
                 containers_counter = len(body.spec.containers)
             elif isinstance(body, dict):
@@ -194,17 +163,13 @@ class PodClient(object):
         logger.info(f"Created the pod {pod_name} in {namespace} namespace")
         # wait to the containers to run
         if wait:
-            self.wait_for_containers_to_run(
-                pod_name=pod_name,
+            self.wait_for_containers_to_run(pod_name=pod_name,
                 pod_id=pod_obj.metadata.uid,
-                containers_counter=containers_counter,
-                namespace=namespace)
+                containers_counter=containers_counter, namespace=namespace)
         return pod_name
 
     @wait_for
-    def wait_for_pod_to_be_deleted(self,
-                                   pod_name,
-                                   namespace=DEFAULT_NAMESPACE):
+    def wait_for_pod_to_be_deleted(self, pod_name, namespace=DEFAULT_NAMESPACE):
         """
         Wait until the pod is deleted
         :param pod_name: the name of the pod
@@ -214,17 +179,13 @@ class PodClient(object):
         :type namespace: str
         """
         try:
-            self.get(name=pod_name,
-                     namespace=namespace)
+            self.get(name=pod_name, namespace=namespace)
             return False
         except K8sNotFoundException:
             return True
 
     @k8s_exceptions
-    def delete(self,
-               name,
-               namespace=DEFAULT_NAMESPACE,
-               wait=False):
+    def delete(self, name, namespace=DEFAULT_NAMESPACE, wait=False):
         """
         Delete pod
         :param name: pod's name
@@ -237,24 +198,16 @@ class PodClient(object):
         :type wait: bool
         """
         # delete the pod from the required namespace
-        self.client_core.delete_namespaced_pod(name=name,
-                                               namespace=namespace)
+        self.client_core.delete_namespaced_pod(name=name, namespace=namespace)
         logger.info(f"Deleted pod {name} from {namespace} namespace")
         # wait to the pod to be deleted
         if wait:
-            self.wait_for_pod_to_be_deleted(pod_name=name,
-                                            namespace=namespace)
+            self.wait_for_pod_to_be_deleted(pod_name=name, namespace=namespace)
 
     @k8s_exceptions
-    def execute(self,
-                name,
-                command,
-                command_prefix=None,
-                namespace=DEFAULT_NAMESPACE,
-                stderr=True,
-                stdin=False,
-                tty=False,
-                container=None):
+    def execute(self, name, command, command_prefix=None,
+                namespace=DEFAULT_NAMESPACE, stderr=True, stdin=False,
+                tty=False, container=None):
         """
         Execute command on pod
         :param name: the name of the pod
@@ -282,32 +235,20 @@ class PodClient(object):
         command = command_prefix + [command]
         kwargs = {"container": container} if container is not None else {}
         resp = stream(func=self.client_core.connect_post_namespaced_pod_exec,
-                      name=name,
-                      namespace=namespace,
-                      command=command,
-                      stdout=True,
-                      stderr=stderr,
-                      stdin=stdin,
-                      tty=tty,
+                      name=name, namespace=namespace, command=command,
+                      stdout=True, stderr=stderr, stdin=stdin, tty=tty,
                       **kwargs)
         logger.info("Executed {command} on pod {name} from namespace "
                     "{namespace}"
-                    "{container}".format(
-                                 command=command,
-                                 name=name,
-                                 namespace=namespace,
-                                 container=" on container "
+                    "{container}".format(command=command, name=name,
+            namespace=namespace, container=" on container "
                                            "{container_name}"
-                                           "".format(container_name=container)
-                                           if container is not None
-                                           else ""))
+                                           "".format(
+                container_name=container) if container is not None else ""))
         return resp
 
     @k8s_exceptions
-    def get(self,
-            name,
-            namespace=DEFAULT_NAMESPACE,
-            dict_output=False):
+    def get(self, name, namespace=DEFAULT_NAMESPACE, dict_output=False):
         """
         Return pod obj or dictionary
         :param name: pod name
@@ -331,43 +272,25 @@ class PodClient(object):
 
         return pod
 
-    def get_ip(self,
-               name,
-               namespace=DEFAULT_NAMESPACE):
-        return self.get(name=name,
-                        namespace=namespace).status.pod_ip
+    def get_ip(self, name, namespace=DEFAULT_NAMESPACE):
+        return self.get(name=name, namespace=namespace).status.pod_ip
 
-    def get_host_internal_ip(self,
-                             name,
-                             namespace=DEFAULT_NAMESPACE):
-        return self.get(name=name,
-                        namespace=namespace).status.host_ip
+    def get_host_internal_ip(self, name, namespace=DEFAULT_NAMESPACE):
+        return self.get(name=name, namespace=namespace).status.host_ip
 
-    def get_status(self,
-                   name,
-                   namespace=DEFAULT_NAMESPACE):
-        return self.get(name=name,
-                        namespace=namespace).status.phase
+    def get_status(self, name, namespace=DEFAULT_NAMESPACE):
+        return self.get(name=name, namespace=namespace).status.phase
 
-    def get_uid(self,
-                name,
-                namespace=DEFAULT_NAMESPACE):
-        return self.get(name=name,
-                        namespace=namespace).metadata.uid
+    def get_uid(self, name, namespace=DEFAULT_NAMESPACE):
+        return self.get(name=name, namespace=namespace).metadata.uid
 
-    def get_name(self,
-                 uid,
-                 namespace=None):
-        return self.list(namespace=namespace,
-                         all_namespaces=namespace is None,
+    def get_name(self, uid, namespace=None):
+        return self.list(namespace=namespace, all_namespaces=namespace is None,
                          field_selector=f"metadata.uid=={uid}")
 
     @k8s_exceptions
-    def list(self,
-             namespace=DEFAULT_NAMESPACE,
-             all_namespaces=False,
-             dict_output=False,
-             field_selector=""):
+    def list(self, namespace=DEFAULT_NAMESPACE, all_namespaces=False,
+             dict_output=False, field_selector=""):
         """
         Return list of pods objects/dictionaries
         :param namespace: the namespace of the pod (default value is 'default')
@@ -396,28 +319,21 @@ class PodClient(object):
 
         # convert the list to list of dicts if required
         if dict_output:
-            pods_list = [convert_obj_to_dict(pod)
-                         for pod in pods_list]
+            pods_list = [convert_obj_to_dict(pod) for pod in pods_list]
         else:
             for pod in pods_list:
                 pod.metadata.resource_version = ''
 
         return pods_list
 
-    def list_names(self,
-                   namespace=DEFAULT_NAMESPACE,
-                   all_namespaces=False,
+    def list_names(self, namespace=DEFAULT_NAMESPACE, all_namespaces=False,
                    field_selector=""):
-        return [pod.metadata.name
-                for pod in self.list(namespace=namespace,
-                                     all_namespaces=all_namespaces,
-                                     field_selector=field_selector)]
+        return [pod.metadata.name for pod in
+                self.list(namespace=namespace, all_namespaces=all_namespaces,
+                          field_selector=field_selector)]
 
     @k8s_exceptions
-    def logs(self,
-             name,
-             namespace=DEFAULT_NAMESPACE,
-             container=None):
+    def logs(self, name, namespace=DEFAULT_NAMESPACE, container=None):
         """
         Return pod's logs
         :param name: the name of the pod
@@ -430,24 +346,17 @@ class PodClient(object):
         :rtype: str
         """
         logger.info("Got logs of pod {name} from namespace {namespace}"
-                    "{container}".format(
-                                  name=name,
-                                  namespace=namespace,
-                                  container=" of {container_name}"
-                                            "".format(container_name=container)
-                                            if container is not None else ""
-                                  )
-                    )
+                    "{container}".format(name=name, namespace=namespace,
+            container=" of {container_name}"
+                      "".format(
+                container_name=container) if container is not None else ""))
         kwargs = {"container": container} if container is not None else {}
         return self.client_core.read_namespaced_pod_log(name=name,
                                                         namespace=namespace,
                                                         **kwargs)
 
     @k8s_exceptions
-    def events(self,
-               name,
-               namespace=DEFAULT_NAMESPACE,
-               only_messages=False):
+    def events(self, name, namespace=DEFAULT_NAMESPACE, only_messages=False):
         """
         Return the list of the events of a specific pod
         :param name: the name of the pod
@@ -459,22 +368,17 @@ class PodClient(object):
         :return: the list of the events
         :rtype: list
         """
-        pod_id = self.get_uid(name=name,
-                              namespace=namespace)
-        events = self.client_core.list_namespaced_event(
-            namespace=namespace,
+        pod_id = self.get_uid(name=name, namespace=namespace)
+        events = self.client_core.list_namespaced_event(namespace=namespace,
             field_selector=f"involvedObject.uid=={pod_id}").items
         logger.info(f"Got the events of pod {name} from namespace {namespace}")
         if only_messages:
-            events = [event["message"] for event in events
-                      if event.get("message") is not None]
+            events = [event["message"] for event in events if
+                      event.get("message") is not None]
         return events
 
     @k8s_exceptions
-    def patch(self,
-              name,
-              body,
-              namespace=DEFAULT_NAMESPACE):
+    def patch(self, name, body, namespace=DEFAULT_NAMESPACE):
         """
         Patch pod
         :param name: the name of the pod
@@ -485,8 +389,7 @@ class PodClient(object):
         :type namespace: str
         """
         logger.info(f"Patched pod {name} from namespace {namespace}")
-        self.client_core.patch_namespaced_pod(name=name,
-                                              namespace=namespace,
+        self.client_core.patch_namespaced_pod(name=name, namespace=namespace,
                                               body=body)
 
 
