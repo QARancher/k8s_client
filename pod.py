@@ -68,9 +68,7 @@ class PodClient(object):
         :rtype: bool
         """
         events_list = self.client_core.list_namespaced_event(
-            namespace=namespace,
-            field_selector="involvedObject.uid=={pod_uid}".format(
-                pod_uid=pod_id))
+            namespace=namespace, field_selector=f"involvedObject.uid=={pod_id}")
         for event in events_list.items:
             if AUTHENTICATION_EXCEPTION in event.message:
                 raise K8sAuthenticationException(message=event.message)
@@ -96,7 +94,8 @@ class PodClient(object):
         :type namespace: str
         """
         if not self.is_containers_started(pod_id=pod_id,
-                containers_counter=containers_counter, namespace=namespace):
+                                          containers_counter=containers_counter,
+                                          namespace=namespace):
             return False
 
         pod_dict = self.get(name=pod_name, namespace=namespace,
@@ -164,8 +163,9 @@ class PodClient(object):
         # wait to the containers to run
         if wait:
             self.wait_for_containers_to_run(pod_name=pod_name,
-                pod_id=pod_obj.metadata.uid,
-                containers_counter=containers_counter, namespace=namespace)
+                                            pod_id=pod_obj.metadata.uid,
+                                            containers_counter=containers_counter,
+                                            namespace=namespace)
         return pod_name
 
     @wait_for
@@ -241,10 +241,11 @@ class PodClient(object):
         logger.info("Executed {command} on pod {name} from namespace "
                     "{namespace}"
                     "{container}".format(command=command, name=name,
-            namespace=namespace, container=" on container "
-                                           "{container_name}"
-                                           "".format(
-                container_name=container) if container is not None else ""))
+                                         namespace=namespace,
+                                         container=" on container "
+                                                   "{container_name}"
+                                                   "".format(
+                                             container_name=container) if container is not None else ""))
         return resp
 
     @k8s_exceptions
@@ -347,9 +348,9 @@ class PodClient(object):
         """
         logger.info("Got logs of pod {name} from namespace {namespace}"
                     "{container}".format(name=name, namespace=namespace,
-            container=" of {container_name}"
-                      "".format(
-                container_name=container) if container is not None else ""))
+                                         container=" of {container_name}"
+                                                   "".format(
+                                             container_name=container) if container is not None else ""))
         kwargs = {"container": container} if container is not None else {}
         return self.client_core.read_namespaced_pod_log(name=name,
                                                         namespace=namespace,
@@ -370,7 +371,7 @@ class PodClient(object):
         """
         pod_id = self.get_uid(name=name, namespace=namespace)
         events = self.client_core.list_namespaced_event(namespace=namespace,
-            field_selector=f"involvedObject.uid=={pod_id}").items
+                                                        field_selector=f"involvedObject.uid=={pod_id}").items
         logger.info(f"Got the events of pod {name} from namespace {namespace}")
         if only_messages:
             events = [event["message"] for event in events if

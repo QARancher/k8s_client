@@ -1,3 +1,4 @@
+from consts import DEFAULT_NAMESPACE
 from exceptions import K8sAlreadyExistsException, K8sNotFoundException
 from helpers.k8s_namespace import K8sNamespace
 from tests.asserts_wrapper import assert_not_none, assert_in_list, \
@@ -17,9 +18,9 @@ class TestNamespace(BaseTest):
         assert_not_none(ns_list)
 
     def test_get_namespace(self, orc):
-        ns = orc.namespace.get(name="s")
+        ns = orc.namespace.get(name=DEFAULT_NAMESPACE)
         assert_not_none(actual_result=ns,
-                        message="Failed to get default namespace")
+                        message=f"Failed to get {DEFAULT_NAMESPACE} namespace")
 
     def test_create_and_delete_namespace(self, orc):
         ns_name = "test"
@@ -34,7 +35,7 @@ class TestNamespace(BaseTest):
                            unwanted_element=ns_name)
 
     def test_create_already_exists_namespace(self, orc):
-        ns_name = "test1"
+        ns_name = "test"
         ns_obj = K8sNamespace(name=ns_name)
         # create namespace
         orc.namespace.create(body=ns_obj)

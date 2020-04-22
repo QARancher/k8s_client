@@ -34,16 +34,14 @@ class NodeClient(object):
                             username=USER_NAME,
                             key_filename=KEY_PATH)
             _, stdout, stderr = session.exec_command(command)
-            logger.info("Executed command {command} on "
-                        "node {name}".format(command=command,
-                                             name=name)
-                        )
+            logger.info(f"Executed command {command} on "
+                        "node {name}")
             # close the session
             session.close()
             return stdout.read()
         elif external_ip is None:
-            raise K8sException(message="Could not find an external ip of "
-                                       "node {name}".format(name=name))
+            raise K8sException(message=f"Could not find an external ip of "
+                                       "node {name}")
 
     def get(self,
             name,
@@ -58,9 +56,8 @@ class NodeClient(object):
         :rtype: Union[V1Node,dictionary]
         """
         nodes_list = self.list(dict_output=dict_output,
-                               field_selector="metadata.name=={node_name}"
-                                              "".format(node_name=name))
-        logger.info("Got node {name}".format(name=name))
+                               field_selector=f"metadata.name=={name}")
+        logger.info(f"Got node {name}")
         return nodes_list[0]
 
     def get_address(self,
@@ -73,13 +70,13 @@ class NodeClient(object):
 
     def get_internal_ip(self,
                         name):
-        logger.info("Get the internal ip of node {name}".format(name=name))
+        logger.info(f"Get the internal ip of node {name}")
         return self.get_address(name=name,
                                 kind="InternalIP")
 
     def get_external_ip(self,
                         name):
-        logger.info("Get the external ip of node {name}".format(name=name))
+        logger.info(f"Get the external ip of node {name}")
         return self.get_address(name=name,
                                 kind="ExternalIP")
 
@@ -134,11 +131,8 @@ class NodeClient(object):
         """
         node_id = self.get(name=name, ).metadata.uid
         events = self.client_core.list_event_for_all_namespaces(
-            field_selector="involvedObject.uid=={node_id}".format(
-                node_id=node_id
-            )
-        ).items
-        logger.info("Got the events of node {name}".format(name=name))
+            field_selector=f"involvedObject.uid=={node_id}").items
+        logger.info(f"Got the events of node {name}")
         if only_messages:
             events = [event["message"] for event in events
                       if event.get("message") is not None]
@@ -155,7 +149,7 @@ class NodeClient(object):
         :param body: the diff body to patch
         :type body: dictionary
         """
-        logger.info("Patch node {name}".format(name=name))
+        logger.info(f"Patch node {name}")
         self.client_core.patch_node(name=name,
                                     body=body)
 
@@ -169,8 +163,7 @@ class NodeClient(object):
         :param label: the label to add to the node
         :type label: str
         """
-        logger.info("Add label {label} to node {name}".format(label=label,
-                                                              name=name))
+        logger.info(f"Add label {label} to node {name}")
         node = self.get(name=name)
         if hasattr(node.metadata, 'labels'):
             patch_dict = {"metadata": {"labels": node.metadata.labels}}
