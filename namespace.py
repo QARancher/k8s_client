@@ -4,8 +4,8 @@ from kubernetes.client import V1Namespace
 
 from consts import WAIT_TIMEOUT
 from utils import convert_obj_to_dict, field_filter, k8s_exceptions
-from exceptions import K8sInvalidResourceBody, K8sNotFoundException
-
+from exceptions import K8sInvalidResourceBody, K8sNotFoundException, \
+    K8sException
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,10 @@ class NamespaceClient(object):
                 raise K8sInvalidResourceBody()
         except (KeyError, AttributeError):
             raise K8sInvalidResourceBody()
-
+        try:
+            self.get(name=namespace_name)
+        except K8sException:
+            raise
         # create the namespace from the body
         self.client_core.create_namespace(body=body)
         logger.info("Created the namespace {namespace_name}"

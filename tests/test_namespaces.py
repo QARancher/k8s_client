@@ -16,7 +16,7 @@ class TestNamespace(BaseTest):
         assert_not_none(ns_list)
 
     def test_get_namespace(self, orc):
-        ns = orc.namespace.get(name="default")
+        ns = orc.namespace.get(name="s")
         assert_not_none(actual_result=ns,
                         message="Failed to get default namespace")
 

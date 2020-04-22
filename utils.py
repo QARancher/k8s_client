@@ -1,4 +1,7 @@
+import json
 import logging
+
+from kubernetes.client.rest import ApiException
 
 from exceptions import InvalidFieldSelector, K8sException
 
@@ -9,8 +12,10 @@ def k8s_exceptions(func):
     def func_wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except K8sException:
-            return None
+        except ApiException as e:
+            error = json.loads(e.body)
+            raise K8sException(message=error.get('message'),
+                               reason=error.get('reason'))
     return func_wrapper
 
 
