@@ -57,6 +57,7 @@ class NamespaceClient(object):
             self.wait_to_namespace_creation(namespace_name=namespace_name)
         return namespace_name
 
+    @wait_for
     def wait_to_namespace_deletion(self,
                                    namespace_name):
         """
@@ -68,7 +69,6 @@ class NamespaceClient(object):
             self.get(name=namespace_name)
             return False
         except K8sNotFoundException:
-            logger.info("Finished waiting before the timeout {timeout}")
             return True
 
     @k8s_exceptions

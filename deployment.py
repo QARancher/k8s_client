@@ -181,11 +181,11 @@ class DeploymentClient(object):
                                             max_threads=max_threads)
         return deployment_name
 
+    @wait_for
     def wait_for_pods_to_be_deleted_thread_manager(
             self,
             pods,
             namespace=DEFAULT_NAMESPACE,
-            timeout=WAIT_TIMEOUT,
             max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the deployment's pods are deleted
@@ -194,9 +194,6 @@ class DeploymentClient(object):
         :param namespace: the namespace of the deployment
         (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :param max_threads: max number of threads to open during waiting
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
@@ -207,8 +204,7 @@ class DeploymentClient(object):
             for pod in pods:
                 kwargs = {
                     "pod_name": pod.metadata.name,
-                    "namespace": namespace,
-                    "timeout": timeout
+                    "namespace": namespace
                           }
                 kwargs_list.append(kwargs)
             for pods_kwargs in split_list_to_chunks(
@@ -227,11 +223,7 @@ class DeploymentClient(object):
             for pod in pods:
                 self.pod.wait_for_pod_to_be_deleted(
                     pod_name=pod.metadata.name,
-                    namespace=namespace,
-                    timeout=timeout
-                )
-        logger.info("Finished waiting before the timeout {timeout}"
-                    "".format(timeout=timeout))
+                    namespace=namespace)
         return True
 
     @k8s_exceptions
@@ -297,7 +289,6 @@ class DeploymentClient(object):
         self.wait_for_deployment_to_run(deployment_name=name,
                                         namespace=namespace,
                                         max_threads=max_threads)
-        logger.info(f"Finished waiting {self.__name__!r}")
         return True
 
     @k8s_exceptions
@@ -364,7 +355,6 @@ class DeploymentClient(object):
         self.wait_for_pods_creation_thread_manager(pods=new_pods,
                                                    namespace=namespace,
                                                    max_threads=max_threads)
-        logger.info(f"Finished waiting for {self.__name__!r}")
         return True
 
     @wait_for
@@ -385,7 +375,7 @@ class DeploymentClient(object):
         is_scaled_down = len(self.get_pods(name=name,
                                            namespace=namespace)) == new_size
         if is_scaled_down:
-            logger.info(f"Finished waiting for {self.__name__!r}")
+            return True
         return is_scaled_down
 
     def scale(self,
@@ -482,16 +472,12 @@ class DeploymentClient(object):
         deployment = self.client_app.read_namespaced_deployment(
             name=name,
             namespace=namespace)
-        logger.info("Got deployment {name} from {namespace} namespace".format(
-            name=name,
-            namespace=namespace))
-
+        logger.info(f"Got deployment {name} from {namespace} namespace")
         # convert the obj to dict if required
         if dict_output:
             deployment = convert_obj_to_dict(deployment)
         else:
             deployment.metadata.resource_version = ''
-
         return deployment
 
     @k8s_exceptions
@@ -522,8 +508,7 @@ class DeploymentClient(object):
         else:
             deployments_list = self.client_app.list_namespaced_deployment(
                 namespace=namespace).items
-            logger.info("Got the deployments list from {namespace} namespace"
-                        "".format(namespace=namespace))
+            logger.info(f"Got the deployments list from {namespace} namespace")
 
         if field_selector:
             deployments_list = field_filter(obj_list=deployments_list,
@@ -571,20 +556,16 @@ class DeploymentClient(object):
         ).items
         deploy_replica_sets = field_filter(
             obj_list=deploy_replica_sets,
-            field_selector="metadata.owner_references[0].kind==Deployment, "
-                           "metadata.owner_references[0].name=={name}"
-                           "".format(name=name))
+            field_selector=f"metadata.owner_references[0].kind==Deployment, "
+                           f"metadata.owner_references[0].name=={name}")
         pods_list = []
         for deploy_replica_set in deploy_replica_sets:
             pods_list.extend(self.pod.list(
                 namespace=namespace,
-                field_selector="metadata.owner_references[0].kind==ReplicaSet,"
-                               "metadata.owner_references[0].name=={name}"
-                               "".format(
-                                    name=deploy_replica_set.metadata.name),
-                dict_output=dict_output
-                )
-            )
+                field_selector=f"metadata.owner_references[0].kind==ReplicaSet,"
+                               f"metadata.owner_references[0].name=="
+                               f"{deploy_replica_set.metadata.name}",
+                dict_output=dict_output))
         return pods_list
 
     @k8s_exceptions
@@ -608,14 +589,9 @@ class DeploymentClient(object):
                                   namespace=namespace).metadata.uid
         events = self.client_app.list_namespaced_event(
             namespace=namespace,
-            field_selector="involvedObject.uid=={deployment_uid}".format(
-                deployment_uid=deployment_uid
-            )
-        ).items
-        logger.info("Got the events of deployment {name} from namespace "
-                    "{namespace}".format(name=name,
-                                         namespace=namespace)
-                    )
+            field_selector=f"involvedObject.uid=={deployment_uid}").items
+        logger.info(f"Got the events of deployment {name} from namespace "
+                    f"{namespace}")
         if only_messages:
             events = [event["message"] for event in events
                       if event.get("message") is not None]

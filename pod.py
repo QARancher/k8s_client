@@ -3,7 +3,7 @@ from kubernetes.client import V1Pod
 from kubernetes.stream import stream
 
 
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
 from exceptions import (
     K8sInvalidResourceBody,
     K8sAuthenticationException,
@@ -102,12 +102,12 @@ class PodClient(object):
                 containers_counter -= 1
         return not containers_counter
 
+    @wait_for
     def wait_for_containers_to_run(self,
                                    pod_name,
                                    pod_id,
                                    containers_counter,
-                                   namespace=DEFAULT_NAMESPACE,
-                                   timeout=WAIT_TIMEOUT):
+                                   namespace=DEFAULT_NAMESPACE):
         """
         Wait until the containers are running
         :param pod_name: the name of the pod
@@ -119,9 +119,6 @@ class PodClient(object):
         :type containers_counter: int
         :param namespace: the namespace of the pod (default value is 'default')
         :type namespace: str
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         if not self.is_containers_started(
                 pod_id=pod_id,
@@ -155,16 +152,13 @@ class PodClient(object):
                     return False
 
             if running_containers == len(container_statuses):
-                logger.info("Finished waiting before the timeout {timeout}"
-                            "".format(timeout=timeout))
                 return True
 
     @k8s_exceptions
     def create(self,
                body,
                namespace=DEFAULT_NAMESPACE,
-               wait=True,
-               timeout=WAIT_TIMEOUT):
+               wait=True):
         """
         Create pod
         :param body: pod's body
@@ -174,9 +168,6 @@ class PodClient(object):
         :type namespace: str
         :param wait: to wait until the creation is over (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :return: pod name
         :rtype: str
         """
@@ -201,21 +192,17 @@ class PodClient(object):
         # create the pod from the body
         pod_obj = self.client_core.create_namespaced_pod(body=body,
                                                          namespace=namespace)
-        logger.info("Created the pod {pod_name} in {namespace} "
-                    "namespace".format(pod_name=pod_name,
-                                       namespace=namespace)
-                    )
-
+        logger.info(f"Created the pod {pod_name} in {namespace} namespace")
         # wait to the containers to run
         if wait:
             self.wait_for_containers_to_run(
                 pod_name=pod_name,
                 pod_id=pod_obj.metadata.uid,
                 containers_counter=containers_counter,
-                namespace=namespace,
-                timeout=timeout)
+                namespace=namespace)
         return pod_name
 
+    @wait_for
     def wait_for_pod_to_be_deleted(self,
                                    pod_name,
                                    namespace=DEFAULT_NAMESPACE,
@@ -236,16 +223,13 @@ class PodClient(object):
                      namespace=namespace)
             return False
         except K8sNotFoundException:
-            logger.info("Finished waiting before the timeout {timeout}"
-                        "".format(timeout=timeout))
             return True
 
     @k8s_exceptions
     def delete(self,
                name,
                namespace=DEFAULT_NAMESPACE,
-               wait=False,
-               timeout=WAIT_TIMEOUT):
+               wait=False):
         """
         Delete pod
         :param name: pod's name
@@ -256,22 +240,15 @@ class PodClient(object):
         :param wait: to wait until the deletion is over
         (default value is False)
         :type wait: bool
-        :param timeout: timeout to wait to the deletion
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         # delete the pod from the required namespace
         self.client_core.delete_namespaced_pod(name=name,
                                                namespace=namespace)
-        logger.info("Deleted pod {name} from {namespace} namespace".format(
-            name=name,
-            namespace=namespace))
-
+        logger.info(f"Deleted pod {name} from {namespace} namespace")
         # wait to the pod to be deleted
         if wait:
             self.wait_for_pod_to_be_deleted(pod_name=name,
-                                            namespace=namespace,
-                                            timeout=timeout)
+                                            namespace=namespace)
 
     @k8s_exceptions
     def execute(self,
@@ -349,9 +326,7 @@ class PodClient(object):
         """
         pod = self.client_core.read_namespaced_pod(name=name,
                                                    namespace=namespace)
-        logger.info("Got pod {name} from {namespace} namespace".format(
-            name=name,
-            namespace=namespace))
+        logger.info(f"Got pod {name} from {namespace} namespace")
 
         # convert the obj to dict if required
         if dict_output:
@@ -390,7 +365,7 @@ class PodClient(object):
                  namespace=None):
         return self.list(namespace=namespace,
                          all_namespaces=namespace is None,
-                         field_selector="metadata.uid=={uid}".format(uid=uid))
+                         field_selector=f"metadata.uid=={uid}")
 
     @k8s_exceptions
     def list(self,
@@ -418,8 +393,7 @@ class PodClient(object):
         else:
             pods_list = self.client_core.list_namespaced_pod(
                 namespace=namespace).items
-            logger.info("Got the pods list from {namespace} namespace".format(
-                namespace=namespace))
+            logger.info(f"Got the pods list from {namespace} namespace")
 
         if field_selector:
             pods_list = field_filter(obj_list=pods_list,
@@ -494,14 +468,8 @@ class PodClient(object):
                               namespace=namespace)
         events = self.client_core.list_namespaced_event(
             namespace=namespace,
-            field_selector="involvedObject.uid=={pod_uid}".format(
-                pod_uid=pod_id
-            )
-        ).items
-        logger.info("Got the events of pod {name} from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace)
-                    )
+            field_selector=f"involvedObject.uid=={pod_id}").items
+        logger.info(f"Got the events of pod {name} from namespace {namespace}")
         if only_messages:
             events = [event["message"] for event in events
                       if event.get("message") is not None]
@@ -521,9 +489,7 @@ class PodClient(object):
         :param namespace: the namespace of the pod (default value is 'default')
         :type namespace: str
         """
-        logger.info("Patched pod {name} from namespace {namespace}"
-                    "".format(name=name,
-                              namespace=namespace))
+        logger.info(f"Patched pod {name} from namespace {namespace}")
         self.client_core.patch_namespaced_pod(name=name,
                                               namespace=namespace,
                                               body=body)
