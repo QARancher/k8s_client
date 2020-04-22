@@ -22,10 +22,6 @@ class TestNamespace(BaseTest):
 
     def test_create_and_delete_namespace(self, orc):
         ns_name = "test"
-        # verify that namespace doesn't exists
-        ns_names = orc.namespace.list_names()
-        assert_not_in_list(list=ns_names,
-                           unwanted_element=ns_name)
         ns_obj = K8sNamespace(name=ns_name)
         # create namespace
         orc.namespace.create(ns_obj)

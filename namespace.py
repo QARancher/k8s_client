@@ -3,9 +3,9 @@ from kubernetes.client import V1Namespace
 
 
 from consts import WAIT_TIMEOUT
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
 from exceptions import K8sInvalidResourceBody, K8sNotFoundException, \
-    K8sException
+    K8sException, K8sAlreadyExists
 
 logger = logging.getLogger(__name__)
 
@@ -15,21 +15,17 @@ class NamespaceClient(object):
                  client_core):
         self.client_core = client_core
 
+    @wait_for
     def wait_to_namespace_creation(self,
-                                   namespace_name,
-                                   timeout=WAIT_TIMEOUT):
+                                   namespace_name):
         """
         Wait to namespace creation
         :param namespace_name: the name of the namespace to wait for
         :type namespace_name: str
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         """
         try:
             self.get(name=namespace_name)
-            logger.info("Finished waiting before the timeout {timeout}"
-                        "".format(timeout=timeout))
+            logger.info("Finished waiting before the timeout")
             return True
         except K8sNotFoundException:
             return False
@@ -37,17 +33,13 @@ class NamespaceClient(object):
     @k8s_exceptions
     def create(self,
                body,
-               wait=True,
-               timeout=WAIT_TIMEOUT):
+               wait=True):
         """
         Create namespace
         :param body: namespace's body
         :type body: dictionary or V1Namespace
         :param wait: to wait until the creation is over (default value is True)
         :type wait: bool
-        :param timeout: timeout to wait to the creation
-        (default value is WAIT_TIMEOUT)
-        :type timeout: int
         :return: namespace name
         :rtype: str
         """
@@ -60,20 +52,13 @@ class NamespaceClient(object):
                 raise K8sInvalidResourceBody()
         except (KeyError, AttributeError):
             raise K8sInvalidResourceBody()
-        try:
-            self.get(name=namespace_name)
-        except K8sException:
-            raise
         # create the namespace from the body
         self.client_core.create_namespace(body=body)
-        logger.info("Created the namespace {namespace_name}"
-                    "".format(namespace_name=namespace_name)
-                    )
-
+        logger.info("Created the namespace {namespace_name}".format(
+            namespace_name=namespace_name))
         # wait to namespace creation
         if wait:
-            self.wait_to_namespace_creation(namespace_name=namespace_name,
-                                            timeout=timeout)
+            self.wait_to_namespace_creation(namespace_name=namespace_name)
         return namespace_name
 
     def wait_to_namespace_deletion(self,

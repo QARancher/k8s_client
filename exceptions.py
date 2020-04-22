@@ -2,6 +2,8 @@ class K8sException(Exception):
     def __init__(self, message="", reason=None):
         if reason and 'NotFound' in reason:
             raise K8sNotFoundException(message=message)
+        if reason and 'AlreadyExists':
+            raise K8sAlreadyExists(message=message)
         super(K8sException, self).__init__(message)
 
 
