@@ -20,9 +20,9 @@ def create_container(image, container_name, privileged=None, as_user=None,
                      resources_limits_dict=None, resources_requests_dict=None,
                      image_pull_policy="", command="", args=""):
     container_obj = {"image": image, "name": container_name, "env": [],
-        "volumeMounts": [], "ports": [], "securityContext": {},
-        "imagePullPolicy": image_pull_policy or "Always",
-        "resources": {"requests": {}, "limits": {}}}
+                     "volumeMounts": [], "ports": [], "securityContext": {},
+                     "imagePullPolicy": image_pull_policy or "IfNotPresent",
+                     "resources": {"requests": {}, "limits": {}}}
     if command:
         container_obj["command"] = command.split(" ")
     if args:
@@ -51,8 +51,7 @@ def create_container(image, container_name, privileged=None, as_user=None,
                 mount_vol = mount_vol[:-3]
 
             container_obj["volumeMounts"].append(
-                {"name": mount_vol,
-                 "mountPath": mount_vol,
+                {"name": mount_vol, "mountPath": mount_vol,
                  "readOnly": readonly})
     if resources_requests_dict is not None:
         container_obj['resources']['requests'] = resources_requests_dict
@@ -156,7 +155,7 @@ class K8sResource(dict):
         self["metadata"]["labels"] = labels
 
     def add_labels(self, labels):
-        for name, label in labels.iteritems():
+        for name, label in labels.items():
             self["metadata"].setdefault("labels", {})[name] = label
 
 

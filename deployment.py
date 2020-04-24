@@ -63,24 +63,25 @@ class DeploymentClient(object):
             kwargs_list = []
             for pod in pods:
                 kwargs = {"pod_name": pod.metadata.name,
-                    "pod_id": pod.metadata.uid,
-                    "containers_counter": len(pod.spec.containers),
-                    "namespace": namespace}
+                          "pod_id": pod.metadata.uid,
+                          "containers_counter": len(pod.spec.containers),
+                          "namespace": namespace}
                 kwargs_list.append(kwargs)
             for pods_kwargs in split_list_to_chunks(list_to_slice=kwargs_list,
-                    number_of_chunks=max_threads):
+                                                    number_of_chunks=max_threads):
                 threads.append(
                     threading.Thread(target=self.wait_for_pods_thread, args=(
-                    self.pod.wait_for_containers_to_run, pods_kwargs)))
+                        self.pod.wait_for_containers_to_run, pods_kwargs)))
                 threads[len(threads) - 1].start()
             for thread in threads:
                 thread.join()
         else:
             for pod in pods:
                 self.pod.wait_for_containers_to_run(pod_name=pod.metadata.name,
-                    pod_id=pod.metadata.uid,
-                    containers_counter=len(pod.spec.containers),
-                    namespace=namespace)
+                                                    pod_id=pod.metadata.uid,
+                                                    containers_counter=len(
+                                                        pod.spec.containers),
+                                                    namespace=namespace)
 
     @wait_for
     def wait_for_deployment_to_run(self, deployment_name,
@@ -141,7 +142,7 @@ class DeploymentClient(object):
 
         # create the deployment from the body
         self.client_app.create_namespaced_deployment(body=body,
-            namespace=namespace)
+                                                     namespace=namespace)
         logger.info(f"Created the deployment {deployment_name} in {namespace} "
                     "namespace")
         # wait to the deployment to run
@@ -153,7 +154,8 @@ class DeploymentClient(object):
 
     @wait_for
     def wait_for_pods_to_be_deleted_thread_manager(self, pods,
-            namespace=DEFAULT_NAMESPACE, max_threads=DEFAULT_MAX_THREADS):
+                                                   namespace=DEFAULT_NAMESPACE,
+                                                   max_threads=DEFAULT_MAX_THREADS):
         """
         Wait until the deployment's pods are deleted
         :param pods: the deployment's pods
@@ -172,17 +174,17 @@ class DeploymentClient(object):
                 kwargs = {"pod_name": pod.metadata.name, "namespace": namespace}
                 kwargs_list.append(kwargs)
             for pods_kwargs in split_list_to_chunks(list_to_slice=kwargs_list,
-                    number_of_chunks=max_threads):
+                                                    number_of_chunks=max_threads):
                 threads.append(
                     threading.Thread(target=self.wait_for_pods_thread, args=(
-                    self.pod.wait_for_pod_to_be_deleted, pods_kwargs)))
+                        self.pod.wait_for_pod_to_be_deleted, pods_kwargs)))
                 threads[len(threads) - 1].start()
             for thread in threads:
                 thread.join()
         else:
             for pod in pods:
                 self.pod.wait_for_pod_to_be_deleted(pod_name=pod.metadata.name,
-                    namespace=namespace)
+                                                    namespace=namespace)
         return True
 
     @k8s_exceptions
@@ -214,7 +216,8 @@ class DeploymentClient(object):
         if wait:
             logger.info(f"Wait to {name} to be deleted")
             self.wait_for_pods_to_be_deleted_thread_manager(pods=pods,
-                namespace=namespace, max_threads=max_threads)
+                                                            namespace=namespace,
+                                                            max_threads=max_threads)
 
     @wait_for
     def wait_for_deployment_to_patch(self, name, pods,
@@ -234,7 +237,8 @@ class DeploymentClient(object):
         :type max_threads: int
         """
         self.wait_for_pods_to_be_deleted_thread_manager(pods=pods,
-            namespace=namespace, max_threads=max_threads)
+                                                        namespace=namespace,
+                                                        max_threads=max_threads)
         self.wait_for_deployment_to_run(deployment_name=name,
                                         namespace=namespace,
                                         max_threads=max_threads)
@@ -386,7 +390,7 @@ class DeploymentClient(object):
         :rtype: Union[V1Deployment,dictionary]
         """
         deployment = self.client_app.read_namespaced_deployment(name=name,
-            namespace=namespace)
+                                                                namespace=namespace)
         logger.info(f"Got deployment {name} from {namespace} namespace")
         # convert the obj to dict if required
         if dict_output:
@@ -458,12 +462,14 @@ class DeploymentClient(object):
         """
         deploy_replica_sets = self.client_app.list_namespaced_replica_set(
             namespace=namespace).items
-        deploy_replica_sets = field_filter(obj_list=deploy_replica_sets,
+        deploy_replica_sets = field_filter(
+            obj_list=deploy_replica_sets,
             field_selector=f"metadata.owner_references[0].kind==Deployment, "
                            f"metadata.owner_references[0].name=={name}")
         pods_list = []
         for deploy_replica_set in deploy_replica_sets:
-            pods_list.extend(self.pod.list(namespace=namespace,
+            pods_list.extend(self.pod.list(
+                namespace=namespace,
                 field_selector=f"metadata.owner_references[0].kind==ReplicaSet,"
                                f"metadata.owner_references[0].name=="
                                f"{deploy_replica_set.metadata.name}",
@@ -486,7 +492,7 @@ class DeploymentClient(object):
         """
         deployment_uid = self.get(name=name, namespace=namespace).metadata.uid
         events = self.client_app.list_namespaced_event(namespace=namespace,
-            field_selector=f"involvedObject.uid=={deployment_uid}").items
+                                                       field_selector=f"involvedObject.uid=={deployment_uid}").items
         logger.info(f"Got the events of deployment {name} from namespace "
                     f"{namespace}")
         if only_messages:

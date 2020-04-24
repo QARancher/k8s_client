@@ -22,7 +22,6 @@ def k8s_exceptions(func):
             return func(*args, **kwargs)
         except ApiException as e:
             error = json.loads(e.body)
-
             raise K8sException(
                 message=f"Executed {func.__module__!r}.{func.__name__!r}"
                         f" \nFailed with error:\n {error.get('message')}",

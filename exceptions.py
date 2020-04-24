@@ -2,8 +2,10 @@ class K8sException(Exception):
     def __init__(self, message="", reason=None):
         if reason and 'NotFound' in reason:
             raise K8sNotFoundException(message=message)
-        if reason and 'AlreadyExists':
+        if reason and 'AlreadyExists' in reason:
             raise K8sAlreadyExistsException(message=message)
+        if reason and 'Invalid' in reason:
+            raise InvalidFieldSelector(message=message)
         super(K8sException, self).__init__(message)
 
 
