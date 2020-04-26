@@ -29,8 +29,7 @@ class DaemonSetClient(object):
         """
         daemon_set = self.get(name=name, namespace=namespace)
         return (
-                    daemon_set.status.desired_number_scheduled == daemon_set.status.current_number_scheduled)
-
+                daemon_set.status.desired_number_scheduled == daemon_set.status.current_number_scheduled)
 
     def wait_for_daemon_set_to_run(self, daemon_set_name,
                                    namespace=DEFAULT_NAMESPACE,
@@ -89,7 +88,7 @@ class DaemonSetClient(object):
             raise K8sInvalidResourceBody()
         # create the daemon from the body
         self.client_app.create_namespaced_daemon_set(body=body,
-            namespace=namespace)
+                                                     namespace=namespace)
         logger.info(f"Created the daemon set {daemon_set_name} in {namespace} "
                     f"namespace")
         # wait to the daemon set to run
@@ -129,7 +128,6 @@ class DaemonSetClient(object):
             self.deployment.wait_for_pods_to_be_deleted_thread_manager(
                 pods=pods, namespace=namespace, max_threads=max_threads)
 
-
     def wait_for_daemon_set_to_patch(self, name, pods,
                                      namespace=DEFAULT_NAMESPACE,
                                      max_threads=DEFAULT_MAX_THREADS):
@@ -147,7 +145,8 @@ class DaemonSetClient(object):
         :type max_threads: int
         """
         self.deployment.wait_for_pods_to_be_deleted_thread_manager(pods=pods,
-            namespace=namespace, max_threads=max_threads)
+                                                                   namespace=namespace,
+                                                                   max_threads=max_threads)
         self.wait_for_daemon_set_to_run(daemon_set_name=name,
                                         namespace=namespace,
                                         max_threads=max_threads)
@@ -197,7 +196,7 @@ class DaemonSetClient(object):
         :rtype: Union[V1DaemonSet,dictionary]
         """
         daemon_set = self.client_app.read_namespaced_daemon_set(name=name,
-            namespace=namespace)
+                                                                namespace=namespace)
         logger.info(f"Got deployment {name} from {namespace} namespace")
 
         # convert the obj to dict if required
@@ -269,9 +268,9 @@ class DaemonSetClient(object):
         :rtype: list
         """
         pods_list = self.pod.list(namespace=namespace,
-            field_selector=f"metadata.owner_references[0].kind==DaemonSet, "
-                           f"metadata.owner_references[0].name=={name}",
-            dict_output=dict_output)
+                                  field_selector=f"metadata.owner_references[0].kind==DaemonSet, "
+                                                 f"metadata.owner_references[0].name=={name}",
+                                  dict_output=dict_output)
         return pods_list
 
     @k8s_exceptions
@@ -290,7 +289,7 @@ class DaemonSetClient(object):
         """
         daemon_set_uid = self.get(name=name, namespace=namespace).metadata.uid
         events = self.client_app.list_namespaced_event(namespace=namespace,
-            field_selector=f"involvedObject.uid=={daemon_set_uid}").items
+                                                       field_selector=f"involvedObject.uid=={daemon_set_uid}").items
         logger.info(f"Got the events of daemon set {name} from namespace "
                     f"{namespace}")
         if only_messages:

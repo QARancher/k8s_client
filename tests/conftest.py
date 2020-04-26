@@ -8,10 +8,10 @@ from tests.consts import NAMESPACE_BYPASS_NAMES
 @pytest.fixture(scope="class")
 def orc(request):
 
-    # def teardown():
-    #     clean_all(orc=orc)
-    #
-    # request.addfinalizer(teardown)
+    def teardown():
+        clean_all(orc=orc)
+
+    request.addfinalizer(teardown)
     return K8sClient()
 
 
