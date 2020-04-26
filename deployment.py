@@ -3,8 +3,9 @@ import threading
 from kubernetes.client import V1Deployment
 
 from utils import (convert_obj_to_dict, split_list_to_chunks, field_filter,
-                   k8s_exceptions, wait_for)
-from consts import (DEFAULT_NAMESPACE, REPLICAS_THRESHOLD, DEFAULT_MAX_THREADS)
+                   k8s_exceptions)
+from consts import (DEFAULT_NAMESPACE, REPLICAS_THRESHOLD, DEFAULT_MAX_THREADS,
+                    WAIT_TIMEOUT)
 
 from exceptions import K8sInvalidResourceBody
 
@@ -43,7 +44,6 @@ class DeploymentClient(object):
         for kwargs in pod_kwargs_list:
             pod_wait_func(**kwargs)
 
-    @wait_for
     def wait_for_pods_creation_thread_manager(self, pods,
                                               namespace=DEFAULT_NAMESPACE,
                                               max_threads=DEFAULT_MAX_THREADS):
@@ -83,7 +83,6 @@ class DeploymentClient(object):
                                                         pod.spec.containers),
                                                     namespace=namespace)
 
-    @wait_for
     def wait_for_deployment_to_run(self, deployment_name,
                                    namespace=DEFAULT_NAMESPACE,
                                    max_threads=DEFAULT_MAX_THREADS):
@@ -152,7 +151,6 @@ class DeploymentClient(object):
                                             max_threads=max_threads)
         return deployment_name
 
-    @wait_for
     def wait_for_pods_to_be_deleted_thread_manager(self, pods,
                                                    namespace=DEFAULT_NAMESPACE,
                                                    max_threads=DEFAULT_MAX_THREADS):
@@ -219,7 +217,6 @@ class DeploymentClient(object):
                                                             namespace=namespace,
                                                             max_threads=max_threads)
 
-    @wait_for
     def wait_for_deployment_to_patch(self, name, pods,
                                      namespace=DEFAULT_NAMESPACE,
                                      max_threads=DEFAULT_MAX_THREADS):
@@ -273,7 +270,6 @@ class DeploymentClient(object):
                                               namespace=namespace,
                                               max_threads=max_threads)
 
-    @wait_for
     def wait_for_deployment_to_scale_up(self, name, pods,
                                         namespace=DEFAULT_NAMESPACE,
                                         max_threads=DEFAULT_MAX_THREADS):
@@ -301,7 +297,7 @@ class DeploymentClient(object):
                                                    max_threads=max_threads)
         return True
 
-    @wait_for
+
     def wait_for_deployment_to_scale_down(self, name, new_size,
                                           namespace=DEFAULT_NAMESPACE):
         """

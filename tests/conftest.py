@@ -6,7 +6,12 @@ from tests.consts import NAMESPACE_BYPASS_NAMES
 
 
 @pytest.fixture(scope="class")
-def orc():
+def orc(request):
+
+    # def teardown():
+    #     clean_all(orc=orc)
+    #
+    # request.addfinalizer(teardown)
     return K8sClient()
 
 
@@ -61,11 +66,8 @@ def delete_all_deployments(orc):
                           deployment_namespace=ns_name)
 
 
-@pytest.fixture(scope="class")
-def clean_all(orc, request):
-    def teardown():
-        delete_all_deployments(orc=orc)
-        delete_all_namespaces(orc=orc)
+def clean_all(orc):
+    delete_all_deployments(orc=orc)
+    delete_all_namespaces(orc=orc)
 
-    request.addfinalizer(teardown)
 

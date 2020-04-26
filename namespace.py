@@ -1,8 +1,11 @@
 import logging
 from kubernetes.client import V1Namespace
+from kubernetes.watch import Watch
 
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
-from exceptions import K8sInvalidResourceBody, K8sNotFoundException
+from consts import WAIT_TIMEOUT
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from exceptions import K8sInvalidResourceBody, K8sNotFoundException, \
+    K8sResourceTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -11,29 +14,79 @@ class NamespaceClient(object):
     def __init__(self, client_core):
         self.client_core = client_core
 
-    @wait_for
-    def wait_to_namespace_creation(self, namespace_name):
+    def wait_for_namespace_deletion(self, namespace_name, timeout=None,
+                                    number_of_events=None):
+        """
+        Wait until the namespace is deleted
+        :param namespace_name: the name of the namespace
+        :type namespace_name: str
+        :param timeout: wait until time exceed
+        :type timeout: int
+        :param number_of_events: number of events to loop through, as larger
+        the number of events, longer the function execution.
+        :type number_of_events: int
+        """
+        timeout = timeout or WAIT_TIMEOUT
+        number_of_events = number_of_events or 10
+        watcher = Watch()
+        for event in watcher.stream(self.client_core.list_namespace,
+                                    timeout_seconds=timeout):
+            logger.debug(f"Event: {event['type']} Namespace: "
+                         f"{event['object'].metadata.name}")
+            number_of_events -= 1
+            if not number_of_events:
+                watcher.stop()
+            elif namespace_name in event[
+                'object'].metadata.name and "DELETED" in event['type']:
+                watcher.stop()
+                return True
+        logger.error(f"Timeout! Failed to Delete Namespace {namespace_name}")
+        raise K8sResourceTimeout(
+            message=f"Timeout! Failed to Delete Namespace {namespace_name}")
+
+    def wait_for_namespace_creation(self, namespace_name, timeout=None,
+                                    number_of_events=None):
         """
         Wait to namespace creation
         :param namespace_name: the name of the namespace to wait for
         :type namespace_name: str
+        :param timeout: wait until time exceed
+        :type timeout: int
+        :param number_of_events: number of events to loop through, as larger
+        the number of events, longer the function execution.
+        :type number_of_events: int
         """
-        try:
-            self.get(name=namespace_name)
-            return True
-        except K8sNotFoundException:
-            return False
+        timeout = timeout or WAIT_TIMEOUT
+        number_of_events = number_of_events or 10
+        watcher = Watch()
+        for event in watcher.stream(self.client_core.list_namespace,
+                                    timeout_seconds=timeout):
+            logger.debug(f"Event: {event['type']} Namespace: "
+                         f"{event['object'].metadata.name}")
+            number_of_events -= 1
+            if not number_of_events:
+                watcher.stop()
+            elif namespace_name in event['object'].metadata.name and "ADDED" in \
+                    event['type']:
+                watcher.stop()
+                return True
+        logger.error(f"Timeout! Failed to create Namespace {namespace_name}")
+        raise K8sResourceTimeout(
+            message=f"Timeout! Failed to create Namespace {namespace_name}")
 
     @k8s_exceptions
-    def create(self, body, wait=True):
+    def create(self, body, wait=True, timeout=None, number_of_events=None):
         """
         Create namespace
         :param body: namespace's body
         :type body: dictionary or V1Namespace
         :param wait: to wait until the creation is over (default value is True)
         :type wait: bool
-        :return: namespace name
+        :return namespace_name: namespace's name to create.
         :rtype: str
+        :param timeout: time to wait for creation on namespace,
+        this arg is passed to wait method
+        :type: int
         """
         try:
             if isinstance(body, V1Namespace):
@@ -46,24 +99,15 @@ class NamespaceClient(object):
             raise K8sInvalidResourceBody()
         # create the namespace from the body
         self.client_core.create_namespace(body=body)
-        logger.info(f"Created the namespace {namespace_name}")
-        # wait to namespace creation
         if wait:
-            self.wait_to_namespace_creation(namespace_name=namespace_name)
-        return namespace_name
+            # wait to namespace creation
+            self.wait_for_namespace_creation(namespace_name=namespace_name,
+                                             timeout=timeout,
+                                             number_of_events=number_of_events)
 
-    @wait_for
-    def wait_to_namespace_deletion(self, namespace_name):
-        """
-        Wait until the namespace is deleted
-        :param namespace_name: the name of the namespace
-        :type namespace_name: str
-        """
-        try:
-            self.get(name=namespace_name)
-            return False
-        except K8sNotFoundException:
-            return True
+        logger.info(f"Created the namespace {namespace_name}")
+
+        return namespace_name
 
     @k8s_exceptions
     def delete(self, name, wait=False):
@@ -81,7 +125,7 @@ class NamespaceClient(object):
 
         # wait to the namespace to be deleted
         if wait:
-            self.wait_to_namespace_deletion(namespace_name=name)
+            self.wait_for_namespace_deletion(namespace_name=name)
 
     @k8s_exceptions
     def get(self, name, dict_output=False):

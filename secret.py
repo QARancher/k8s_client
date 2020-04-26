@@ -2,7 +2,7 @@ import logging
 from kubernetes.client import V1Secret
 
 from consts import DEFAULT_NAMESPACE
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions
 from exceptions import K8sInvalidResourceBody, K8sNotFoundException
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ class SecretClient(object):
     def __init__(self, client_core):
         self.client_core = client_core
 
-    @wait_for
+
     def wait_to_secret_creation(self, secret_name, namespace):
         """
         Wait to secret creation
@@ -67,7 +67,7 @@ class SecretClient(object):
                                          namespace=namespace)
         return secret_name
 
-    @wait_for
+
     def wait_to_secret_deletion(self, secret_name, namespace):
         """
         Wait until the secret is deleted

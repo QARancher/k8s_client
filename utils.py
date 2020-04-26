@@ -1,12 +1,8 @@
 import json
 import logging
-from functools import wraps
-from time import perf_counter
 
 from kubernetes.client.rest import ApiException
-
-from consts import WAIT_TIMEOUT
-from exceptions import InvalidFieldSelector, K8sException
+from exceptions import InvalidFieldSelector, K8sException, K8sResourceTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -28,25 +24,6 @@ def k8s_exceptions(func):
                 reason=error.get('reason'))
 
     return exception_wrapper
-
-
-def wait_for(func):
-    """wrapper for function to wait for timeout after certain time.
-    please use with function that return true / false."""
-    @wraps(func)
-    def wrapper_wait(*args, **kwargs):
-        start_time = perf_counter()
-        while True and WAIT_TIMEOUT <= perf_counter() + start_time:
-            try:
-                value = func(*args, **kwargs)
-                if value:
-                    logger.info(f"Finished waiting for"
-                                f" {func.__module__}.{func.__name__!r}")
-                    return False
-            except:
-                return True
-
-    return wrapper_wait
 
 
 def underscore_to_uppercase(dict_to_edit):

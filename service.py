@@ -2,7 +2,7 @@ import logging
 from kubernetes.client import V1Service
 
 from consts import DEFAULT_NAMESPACE
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions
 from exceptions import K8sInvalidResourceBody, K8sException, \
     K8sNotFoundException
 
@@ -13,7 +13,7 @@ class ServiceClient(object):
     def __init__(self, client_core):
         self.client_core = client_core
 
-    @wait_for
+
     def wait_to_service_creation(self, service_name, namespace):
         """
         Wait to service creation
@@ -79,7 +79,7 @@ class ServiceClient(object):
                                           namespace=namespace)
         return service_name
 
-    @wait_for
+
     def wait_to_service_deletion(self, service_name, namespace):
         """
         Wait until the service is deleted

@@ -2,7 +2,7 @@ import os
 
 
 DEFAULT_NAMESPACE = "default"
-WAIT_TIMEOUT = 120
+WAIT_TIMEOUT = 60
 COMPLETE_STATE = "Completed"
 ERROR_STATE = "Error"
 AUTHENTICATION_EXCEPTION = "unauthorized"

@@ -44,5 +44,10 @@ class K8sRuntimeException(K8sException):
         super(K8sRuntimeException, self).__init__(message)
 
 
+class K8sResourceTimeout(K8sException):
+    def __init__(self, message="Waiting for resource got a Timeout"):
+        super(K8sResourceTimeout, self).__init__(message)
+
+
 if __name__ == "__main__":
     pass

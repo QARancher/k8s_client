@@ -1,5 +1,5 @@
 import yaml
-from kubernetes import client, config
+from kubernetes import client, config, watch
 
 from pod import PodClient
 from node import NodeClient
@@ -9,9 +9,7 @@ from namespace import NamespaceClient
 from daemonset import DaemonSetClient
 from deployment import DeploymentClient
 from exceptions import K8sInvalidResourceBody
-from consts import (WAIT_TIMEOUT, DEFAULT_MAX_THREADS, KUBECONFIG_PATH,
-
-)
+from consts import (DEFAULT_MAX_THREADS, KUBECONFIG_PATH)
 
 
 class K8sClient(object):

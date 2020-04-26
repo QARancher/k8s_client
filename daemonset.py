@@ -4,7 +4,7 @@ from kubernetes.client import V1DaemonSet
 
 from consts import DEFAULT_NAMESPACE, DEFAULT_MAX_THREADS
 from exceptions import K8sInvalidResourceBody
-from utils import k8s_exceptions, convert_obj_to_dict, field_filter, wait_for
+from utils import k8s_exceptions, convert_obj_to_dict, field_filter
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class DaemonSetClient(object):
         return (
                     daemon_set.status.desired_number_scheduled == daemon_set.status.current_number_scheduled)
 
-    @wait_for
+
     def wait_for_daemon_set_to_run(self, daemon_set_name,
                                    namespace=DEFAULT_NAMESPACE,
                                    max_threads=DEFAULT_MAX_THREADS):
@@ -129,7 +129,7 @@ class DaemonSetClient(object):
             self.deployment.wait_for_pods_to_be_deleted_thread_manager(
                 pods=pods, namespace=namespace, max_threads=max_threads)
 
-    @wait_for
+
     def wait_for_daemon_set_to_patch(self, name, pods,
                                      namespace=DEFAULT_NAMESPACE,
                                      max_threads=DEFAULT_MAX_THREADS):

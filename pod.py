@@ -1,8 +1,9 @@
 import logging
+
 from kubernetes.client import V1Pod
 from kubernetes.stream import stream
 
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions, wait_for
+from utils import convert_obj_to_dict, field_filter, k8s_exceptions
 from exceptions import (K8sInvalidResourceBody, K8sAuthenticationException,
                         K8sPullingException, K8sNotFoundException,
                         K8sRuntimeException)
@@ -78,7 +79,6 @@ class PodClient(object):
                 containers_counter -= 1
         return not containers_counter
 
-    @wait_for
     def wait_for_containers_to_run(self, pod_name, pod_id, containers_counter,
                                    namespace=DEFAULT_NAMESPACE):
         """
@@ -168,7 +168,6 @@ class PodClient(object):
                                             namespace=namespace)
         return pod_name
 
-    @wait_for
     def wait_for_pod_to_be_deleted(self, pod_name, namespace=DEFAULT_NAMESPACE):
         """
         Wait until the pod is deleted
