@@ -3,11 +3,10 @@ import threading
 from kubernetes.client import V1Deployment
 
 from utils import (convert_obj_to_dict, split_list_to_chunks, field_filter,
-                   k8s_exceptions)
-from consts import (DEFAULT_NAMESPACE, REPLICAS_THRESHOLD, DEFAULT_MAX_THREADS,
-                    WAIT_TIMEOUT)
+                   k8s_exceptions, retry)
+from consts import (DEFAULT_NAMESPACE, REPLICAS_THRESHOLD, DEFAULT_MAX_THREADS)
 
-from exceptions import K8sInvalidResourceBody
+from exceptions import K8sInvalidResourceBody, K8sResourceTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,7 @@ class DeploymentClient(object):
         self.client_app = client_app
         self.pod = pod
 
+    @retry
     def finished_to_create_ready_replicas(self, name, namespace):
         """
         Return if the replicas of a deployment are created
@@ -30,7 +30,7 @@ class DeploymentClient(object):
         :rtype: bool
         """
         deployment = self.get(name=name, namespace=namespace)
-        return deployment.spec.replicas == deployment.status.replicas
+        return deployment.spec.replicas == deployment.status.available_replicas
 
     @staticmethod
     def wait_for_pods_thread(pod_wait_func, pod_kwargs_list):
@@ -97,12 +97,11 @@ class DeploymentClient(object):
         (default value is DEFAULT_MAX_THREADS)
         :type max_threads: int
         """
-        if not self.finished_to_create_ready_replicas(name=deployment_name,
-                                                      namespace=namespace):
-            return False
         self.wait_for_pods_creation_thread_manager(
             pods=self.get_pods(name=deployment_name, namespace=namespace),
             namespace=namespace, max_threads=max_threads)
+        self.finished_to_create_ready_replicas(name=deployment_name,
+                                               namespace=namespace)
         return True
 
     @k8s_exceptions
@@ -297,7 +296,6 @@ class DeploymentClient(object):
                                                    max_threads=max_threads)
         return True
 
-
     def wait_for_deployment_to_scale_down(self, name, new_size,
                                           namespace=DEFAULT_NAMESPACE):
         """
@@ -458,18 +456,16 @@ class DeploymentClient(object):
         """
         deploy_replica_sets = self.client_app.list_namespaced_replica_set(
             namespace=namespace).items
-        deploy_replica_sets = field_filter(
-            obj_list=deploy_replica_sets,
+        deploy_replica_sets = field_filter(obj_list=deploy_replica_sets,
             field_selector=f"metadata.owner_references[0].kind==Deployment, "
                            f"metadata.owner_references[0].name=={name}")
         pods_list = []
         for deploy_replica_set in deploy_replica_sets:
-            pods_list.extend(self.pod.list(
-                namespace=namespace,
-                field_selector=f"metadata.owner_references[0].kind==ReplicaSet,"
-                               f"metadata.owner_references[0].name=="
-                               f"{deploy_replica_set.metadata.name}",
-                dict_output=dict_output))
+            pods_list.extend(self.pod.list(namespace=namespace,
+                                           field_selector=f"metadata.owner_references[0].kind==ReplicaSet,"
+                                                          f"metadata.owner_references[0].name=="
+                                                          f"{deploy_replica_set.metadata.name}",
+                                           dict_output=dict_output))
         return pods_list
 
     @k8s_exceptions

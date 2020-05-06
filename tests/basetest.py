@@ -1,6 +1,7 @@
-from lite_k8s import K8sClient
+import pytest
 
 
+@pytest.mark.usefixtures("clean_all")
 class BaseTest(object):
     pass
 

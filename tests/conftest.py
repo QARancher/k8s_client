@@ -2,28 +2,31 @@ import pytest
 
 from helpers.k8s_namespace import K8sNamespace
 from lite_k8s import K8sClient
-from tests.consts import NAMESPACE_BYPASS_NAMES
+from tests.consts import NAMESPACE_BYPASS_NAMES, DEFAULT_NAMESPACE_NAME
 
 
 @pytest.fixture(scope="class")
-def orc(request):
-
-    def teardown():
-        clean_all(orc=orc)
-
-    request.addfinalizer(teardown)
+def orc():
     return K8sClient()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="class")
+def clean_all(orc, request):
+    def teardown():
+        delete_all_deployments(orc=orc)
+        delete_all_namespaces(orc=orc)
+
+    request.addfinalizer(teardown)
+
+
+@pytest.fixture(scope="class")
 def create_namespace(orc, request):
-    ns_name = "test"
-    ns_obj = K8sNamespace(name=ns_name)
+    ns_obj = K8sNamespace(name=DEFAULT_NAMESPACE_NAME)
     # create namespace
     ns = orc.namespace.create(body=ns_obj)
 
     def teardown():
-        delete_namespace(orc=orc, namespace_name=ns_name)
+        delete_namespace(orc=orc, namespace_name=DEFAULT_NAMESPACE_NAME)
 
     request.addfinalizer(teardown)
     return ns
@@ -49,25 +52,23 @@ def is_namespace_allowed(name):
     return False
 
 
+def list_allowed_namespaces_for_delete(orc):
+    return [ns_name for ns_name in orc.namespace.list_names() if
+            is_namespace_allowed(ns_name)]
+
+
 def delete_all_namespaces(orc):
-    namespaces_names = orc.namespace.list_names()
-    ns_name = iter(namespaces_names)
-    if is_namespace_allowed(ns_name):
-        delete_namespace(orc=orc, namespace_name=next(ns_name))
+    namespaces_names = list_allowed_namespaces_for_delete(orc)
+    for ns_name in namespaces_names:
+        delete_namespace(orc=orc, namespace_name=ns_name)
 
 
 def delete_all_deployments(orc):
-    namespaces_names = orc.namespace.list_names()
-    ns_name = iter(namespaces_names)
-    if is_namespace_allowed(ns_name):
-        deployments_names = orc.deployment.list_names()
+    namespaces_names = list_allowed_namespaces_for_delete(orc)
+    for ns_name in namespaces_names:
+        deployments_names = orc.deployment.list_names(namespace=ns_name)
+        if not deployments_names:
+            return
         deployment_name = iter(deployments_names)
         delete_deployment(orc=orc, deployment_name=deployment_name,
                           deployment_namespace=ns_name)
-
-
-def clean_all(orc):
-    delete_all_deployments(orc=orc)
-    delete_all_namespaces(orc=orc)
-
-

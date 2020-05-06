@@ -1,5 +1,6 @@
 import json
 import logging
+from time import sleep
 
 from kubernetes.client.rest import ApiException
 from exceptions import InvalidFieldSelector, K8sException, K8sResourceTimeout
@@ -24,6 +25,34 @@ def k8s_exceptions(func):
                 reason=error.get('reason'))
 
     return exception_wrapper
+
+
+def retry(func):
+    """
+    Decorator to retry runs of a function, 3 iteration with 3 seconds sleep
+    between each attempts.
+    After all iterations, if failed, returns False. True if the function
+    retries true, while running the loop.
+    func: function that return true or false only.
+    """
+
+    def wrapper(*args, **kwargs):
+        attempts = 3
+        while False or attempts > 0:
+            try:
+                attempts -= 1
+                sleep(3)
+                if func(*args, **kwargs):
+                    return True
+            except K8sException:
+                continue
+        else:
+            raise K8sResourceTimeout(
+                message=f"Failed to get success response after {attempts}"
+                f"while running {func.__module__!r}.{func.__name__!r} args: "
+                        f"{args} kwargs: {kwargs}")
+
+    return wrapper
 
 
 def underscore_to_uppercase(dict_to_edit):
@@ -55,15 +84,12 @@ def convert_obj_to_dict(obj):
 
 
 def split_list_to_chunks(list_to_slice, number_of_chunks):
-    chunk = {}
-    for pod_offset in range(0, len(list_to_slice), number_of_chunks):
-        for chunk_num in range(number_of_chunks):
-            if len(list_to_slice) > pod_offset + chunk_num:
-                chunk.setdefault(chunk_num, []).append(
-                    list_to_slice[pod_offset + chunk_num])
-            else:
-                return chunk.values()
-    return chunk.values()
+    if len(list_to_slice) <= number_of_chunks:
+        return list_to_slice
+    else:
+        begining = list_to_slice[number_of_chunks:]
+        remaining = list_to_slice[:number_of_chunks]
+        return begining + split_list_to_chunks(remaining, number_of_chunks)
 
 
 def field_filter(obj_list, field_selector):
