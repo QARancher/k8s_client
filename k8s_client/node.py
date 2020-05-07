@@ -1,9 +1,9 @@
 import logging
 import paramiko
 
-from consts import KEY_PATH, USER_NAME
-from exceptions import K8sException
-from utils import k8s_exceptions, convert_obj_to_dict, field_filter
+from k8s_client.consts import KEY_PATH, USER_NAME
+from k8s_client.exceptions import K8sException
+from k8s_client.utils import k8s_exceptions, convert_obj_to_dict, field_filter
 
 logger = logging.getLogger(__name__)
 

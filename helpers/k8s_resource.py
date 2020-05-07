@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from exceptions import K8sInvalidResourceBody
+from k8s_client.exceptions import K8sInvalidResourceBody
 
 
 def get_current_timestamp():

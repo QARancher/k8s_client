@@ -1,15 +1,15 @@
 import yaml
-from kubernetes import client, config, watch
+from kubernetes import client, config
 
-from pod import PodClient
-from node import NodeClient
-from secret import SecretClient
-from service import ServiceClient
-from namespace import NamespaceClient
-from daemonset import DaemonSetClient
-from deployment import DeploymentClient
-from exceptions import K8sInvalidResourceBody
-from consts import (DEFAULT_MAX_THREADS, KUBECONFIG_PATH)
+from k8s_client.pod import PodClient
+from k8s_client.node import NodeClient
+from k8s_client.secret import SecretClient
+from k8s_client.service import ServiceClient
+from k8s_client.namespace import NamespaceClient
+from k8s_client.daemonset import DaemonSetClient
+from k8s_client.deployment import DeploymentClient
+from k8s_client.exceptions import K8sInvalidResourceBody
+from k8s_client.consts import (DEFAULT_MAX_THREADS, KUBECONFIG_PATH)
 
 
 class K8sClient(object):

@@ -1,5 +1,5 @@
-from consts import DEFAULT_NAMESPACE
-from exceptions import K8sAlreadyExistsException, K8sNotFoundException
+from k8s_client.consts import DEFAULT_NAMESPACE
+from k8s_client.exceptions import K8sAlreadyExistsException, K8sNotFoundException
 from helpers.k8s_namespace import K8sNamespace
 from tests.asserts_wrapper import assert_not_none, assert_in_list, \
     assert_not_in_list, assert_equal

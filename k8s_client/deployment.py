@@ -2,11 +2,11 @@ import logging
 import threading
 from kubernetes.client import V1Deployment
 
-from utils import (convert_obj_to_dict, split_list_to_chunks, field_filter,
-                   k8s_exceptions, retry)
-from consts import (DEFAULT_NAMESPACE, REPLICAS_THRESHOLD, DEFAULT_MAX_THREADS)
+from k8s_client.utils import (convert_obj_to_dict, split_list_to_chunks, field_filter,
+                              k8s_exceptions, retry)
+from k8s_client.consts import (DEFAULT_NAMESPACE, REPLICAS_THRESHOLD, DEFAULT_MAX_THREADS)
 
-from exceptions import K8sInvalidResourceBody, K8sResourceTimeout
+from k8s_client.exceptions import K8sInvalidResourceBody
 
 logger = logging.getLogger(__name__)
 

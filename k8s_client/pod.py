@@ -3,13 +3,13 @@ import logging
 from kubernetes.client import V1Pod
 from kubernetes.stream import stream
 
-from utils import convert_obj_to_dict, field_filter, k8s_exceptions
-from exceptions import (K8sInvalidResourceBody, K8sAuthenticationException,
-                        K8sPullingException, K8sNotFoundException,
-                        K8sRuntimeException)
-from consts import (DEFAULT_NAMESPACE, COMPLETE_STATE, AUTHENTICATION_EXCEPTION,
-                    PULLING_EXCEPTION, CREATED_SUCCESSFULLY, ERROR_STATE,
-                    PULLING_FAIL)
+from k8s_client.utils import convert_obj_to_dict, field_filter, k8s_exceptions
+from k8s_client.exceptions import (K8sInvalidResourceBody, K8sAuthenticationException,
+                                   K8sPullingException, K8sNotFoundException,
+                                   K8sRuntimeException)
+from k8s_client.consts import (DEFAULT_NAMESPACE, COMPLETE_STATE, AUTHENTICATION_EXCEPTION,
+                               PULLING_EXCEPTION, CREATED_SUCCESSFULLY, ERROR_STATE,
+                               PULLING_FAIL)
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,4 @@
+Feature: alpine deployment
+Scenario: alpine deployment
+    Given namespace 'test' created
+    When deployment 'alpine' is started

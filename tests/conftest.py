@@ -1,7 +1,7 @@
 import pytest
 
 from helpers.k8s_namespace import K8sNamespace
-from lite_k8s import K8sClient
+from k8s_client.lite_k8s import K8sClient
 from tests.consts import NAMESPACE_BYPASS_NAMES, DEFAULT_NAMESPACE_NAME
 
 

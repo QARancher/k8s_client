@@ -2,9 +2,9 @@ import logging
 
 from kubernetes.client import V1DaemonSet
 
-from consts import DEFAULT_NAMESPACE, DEFAULT_MAX_THREADS
-from exceptions import K8sInvalidResourceBody
-from utils import k8s_exceptions, convert_obj_to_dict, field_filter
+from k8s_client.consts import DEFAULT_NAMESPACE, DEFAULT_MAX_THREADS
+from k8s_client.exceptions import K8sInvalidResourceBody
+from k8s_client.utils import k8s_exceptions, convert_obj_to_dict, field_filter
 
 logger = logging.getLogger(__name__)
 

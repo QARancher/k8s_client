@@ -3,7 +3,7 @@ import logging
 from time import sleep
 
 from kubernetes.client.rest import ApiException
-from exceptions import InvalidFieldSelector, K8sException, K8sResourceTimeout
+from k8s_client.exceptions import InvalidFieldSelector, K8sException, K8sResourceTimeout
 
 logger = logging.getLogger(__name__)
 
