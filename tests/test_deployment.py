@@ -9,8 +9,8 @@ mysql_image_obj = K8sImage(image_name="mysql", version="8.0.0")
 alpine_image_obj = K8sImage(image_name="alpine", version="latest")
 
 
-@pytest.mark.parametrize("image", [alpine_image_obj],
-                         ids=[alpine_image_obj.image_name])
+@pytest.mark.parametrize("image", [alpine_image_obj, mysql_image_obj],
+                         ids=[alpine_image_obj.image_name, mysql_image_obj.image_name])
 class TestK8sDeployment(BaseTest):
     """
     Test class for functionality tests of deployment.
@@ -81,3 +81,4 @@ class TestK8sDeployment(BaseTest):
                          message=f"Pod {pod.metadata.name} is not running "
                                  f"for deployment: {image.image_name} "
                                  f"in namespace: {create_namespace}")
+
